@@ -1,0 +1,49 @@
+{
+    "name": "ethernet-ip",
+    "version": "2.0.1",
+    "description": "A simple node interface for Ethernet/IP.",
+    "main": "./src/index.js",
+    "scripts": {
+        "test": "npm run lint && jest && npm run test:coverage && cat ./coverage/lcov.info | ./node_modules/coveralls/bin/coveralls.js",
+        "test:local": "npm run lint && jest && npm run test:coverage",
+        "test:watch": "jest --watch",
+        "test:coverage": "jest --coverage",
+        "test:detailed": "jest --verbose",
+        "test:update": "jest -u",
+        "lint": "./node_modules/.bin/eslint . --ext .js",
+        "lint:fix": "npm run lint -- --fix"
+    },
+    "keywords": [
+        "rockwell",
+        "allen",
+        "bradley",
+        "allen-bradley",
+        "ethernet",
+        "ethernet-ip",
+        "ethernet/ip",
+        "CIP",
+        "industrial",
+        "PLC",
+        "communication",
+        "controller"
+    ],
+    "dependencies": {
+        "dateformat": "^3.0.3",
+        "deep-equal": "^1.1.1",
+        "int64-buffer": "^0.99.1007",
+        "task-easy": "^0.2.0"
+    },
+    "devDependencies": {
+        "colors": "^1.3.2",
+        "coveralls": "^3.0.2",
+        "eslint": "^4.19.1",
+        "eslint-plugin-jest": "^21.22.0",
+        "jest": "^23.6.0"
+    },
+    "author": "Jason Serafin",
+    "license": "MIT",
+    "repository": {
+        "type": "git",
+        "url": "https://github.com/SerafinTech/node-ethernet-ip"
+    }
+}

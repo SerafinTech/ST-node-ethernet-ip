@@ -1,0 +1,7 @@
+**/*.spec.js
+/coverage
+/manuals
+/scripts
+
+**/__snapshots__
+CONTRIBUTE.md
