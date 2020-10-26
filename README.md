@@ -13,7 +13,7 @@ latest version of [NodeJS](https://nodejs.org/en/)
 Install with npm
 
 ```
-npm install SerafinTech/node-ethernet-ip --save
+npm install SerafinTech/ST-node-ethernet-ip --save
 ```
 ## The API
 
