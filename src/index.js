@@ -5,6 +5,7 @@ const EthernetIP = require("./enip");
 const util = require("./utilities");
 const TagList = require("./tag-list");
 const { Structure } = require("./structure");
+const Browser = require("./browser");
 
 module.exports = { Controller, Tag, TagGroup, EthernetIP, util, TagList, Structure, Browser};
 
