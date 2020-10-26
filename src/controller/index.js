@@ -236,7 +236,7 @@ class Controller extends ENIP {
 
         // Create connection parameters
         const params = CIP.ConnectionManager.build_connectionParameters(owner["Exclusive"], connectionType["PointToPoint"],priority["Low"],fixedVar["Variable"],500);
-        this.state.fwd_open_serial = getRandomInt(32767)
+        this.state.fwd_open_serial = getRandomInt(32767);
         const forwardOpenData = CIP.ConnectionManager.build_forwardOpen(this.state.rpi * 1000, params, 1000 , 32, this.state.fwd_open_serial);
 
         // Build MR Path in order to send the message to the CPU

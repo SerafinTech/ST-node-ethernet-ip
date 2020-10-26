@@ -12,4 +12,4 @@
 /scripts
 
 # Ignore local test
-/src/maintest.js
+/src/maintest*

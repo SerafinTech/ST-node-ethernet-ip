@@ -150,7 +150,7 @@ CPF.parse = buf => {
         buf.copy(data, 0, ptr, ptr + length);
 
         // Append Gathered Data Object to Return Array
-        arr.push({ TypeID, data });
+        arr.push({ TypeID, length, data});
 
         ptr += length;
     }

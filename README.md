@@ -324,6 +324,32 @@ PLC.connect("192.168.1.1", 0).then(async () => {
 });
 ```
 
+### New Device Browser
+
+#### Find Devices On The Network
+
+`Uses the same method as RsLinx to detect if device is on the network`
+
+```javascript
+const { Browser } = require("ethernet-ip");
+
+const browser = new Browser();
+
+//When new device is detected
+browser.on("New Device", device => {
+    //Display all device info
+    console.log(device);
+    //Display Device IP address
+    console.log(device.socketAddress.sin_addr);
+    //Display Device Description
+    console.log(device.productName)
+});
+
+//when device is not detected after x amount of scans
+browser.on("Device Disconnected", device => {
+    // 'device' is the disconnected device
+})
+```
 
 ## Demos
 
