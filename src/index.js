@@ -6,6 +6,7 @@ const util = require("./utilities");
 const TagList = require("./tag-list");
 const { Structure } = require("./structure");
 const Browser = require("./browser");
+const IO = require("./io");
 
-module.exports = { Controller, Tag, TagGroup, EthernetIP, util, TagList, Structure, Browser};
+module.exports = { Controller, Tag, TagGroup, EthernetIP, util, TagList, Structure, Browser, IO};
 

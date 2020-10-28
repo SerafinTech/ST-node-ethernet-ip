@@ -140,7 +140,7 @@ class ENIP extends Socket {
      * @returns {Promise}
      * @memberof ENIP
      */
-    async connect(IP_ADDR) {
+    async connect(IP_ADDR, timeoutSP=10000) {
         if (!IP_ADDR) {
             throw new Error("Controller <class> requires IP_ADDR <string>!!!");
         }
@@ -179,7 +179,7 @@ class ENIP extends Socket {
                     }
                 );
             }),
-            10000,
+            timeoutSP,
             connectErr
         );
 
@@ -200,7 +200,7 @@ class ENIP extends Socket {
                     resolve(null);
                 });
             }),
-            10000,
+            timeoutSP,
             sessionErr
         );
 

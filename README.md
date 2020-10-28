@@ -2,7 +2,7 @@
 
 # Node Ethernet/IP
 
-A simple and lightweight node based API for interfacing with Rockwell Control/CompactLogix PLCs.
+A simple and lightweight node based API for interfacing with Rockwell Control/CompactLogix PLCs and Ethernet/IP I/O.
 
 ## Prerequisites
 
@@ -13,7 +13,7 @@ latest version of [NodeJS](https://nodejs.org/en/)
 Install with npm
 
 ```
-npm install SerafinTech/ST-node-ethernet-ip --save
+npm install st-ethernet-ip --save
 ```
 ## The API
 
@@ -234,7 +234,7 @@ PLC.forEach(tag => {
 #### Getting a List of Available Controller Tags and Structure Templates
 
 ```javascript
-const { Controller, TagList } = require("ethernet-ip");
+const { Controller, TagList } = require("st-ethernet-ip");
 
 const PLC = new Controller();
 
@@ -276,7 +276,7 @@ TagList.tags[] Object
 #### Reading/Writing LINT - Node.js >= 12.0.0
 
 ```javascript
-const { Controller, Tag } = require("ethernet-ip");
+const { Controller, Tag } = require("st-ethernet-ip");
 
 const PLC = new Controller();
 
@@ -304,7 +304,7 @@ PLC.connect("192.168.1.1", 0).then(async () => {
 #### Reading/Writing Strings
 
 ```javascript
-const { Controller, Tag, TagList, Structure } = require("ethernet-ip");
+const { Controller, Tag, TagList, Structure } = require("st-ethernet-ip");
 
 const PLC = new Controller();
 
@@ -331,7 +331,7 @@ PLC.connect("192.168.1.1", 0).then(async () => {
 `Uses the same method as RsLinx to detect if device is on the network`
 
 ```javascript
-const { Browser } = require("ethernet-ip");
+const { Browser } = require("st-ethernet-ip");
 
 const browser = new Browser();
 
@@ -348,6 +348,50 @@ browser.on("New Device", device => {
 //when device is not detected after x amount of scans
 browser.on("Device Disconnected", device => {
     // 'device' is the disconnected device
+})
+```
+
+### New I/O Scanner
+
+#### Read And Write I/O On The Network
+
+`Turn your computer into a PLC controller`
+
+```javascript
+const { IO } = require("st-ethernet-ip")
+
+const scanner = new IO.Scanner(); // Iinitalize new scanner on default port 2222
+
+// device configuration from manufacturer.
+const config = {
+  configInstance: {
+    assembly: 100,
+    size: 0
+  },
+  outputInstance: {
+    assembly: 102,
+    size: 6
+  },
+  inputInstance: {
+    assembly: 101,
+    size: 4
+  }
+}
+
+// Add a connection with (device config, rpi, ip_address)
+const conn = scanner.addConnection(config, 8, '192.168.86.42')
+
+// After first UDP packet is received
+conn.on('connected', () => {
+  console.log('Connected')
+  console.log('input data => ', conn.inputData) // Display Input Data Buffer after connected. Only input data on this device are status bytes.
+  conn.outputData.writeUInt16LE(0xff, 4) // Set first 8 outputs to on, skipping the first two 16bit integer control bytes of device.
+  console.log('output data => ', conn.outputData)
+})
+
+// Called when UDP packets are not receiving. (Timeout is based on rpi setting)
+conn.on('disconnected', () => {
+  console.log('Disconnected')
 })
 ```
 

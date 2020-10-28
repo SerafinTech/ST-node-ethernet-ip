@@ -130,7 +130,7 @@ const build_forwardOpen = (otRPI = 8000, netConnParams = 0x43f4, timeOutMs = 100
     ptr+=1;
     connectionParams.writeUInt8(timeout.ticks,ptr); // Timeout Ticks
     ptr+=1;
-    connectionParams.writeUInt32LE(getRandomInt(2147483647),ptr); // O->T Connection ID
+    connectionParams.writeUInt32LE(0,ptr); // O->T Connection ID
     ptr+=4;
     connectionParams.writeUInt32LE(getRandomInt(2147483647),ptr); // T->O Connection ID
     ptr+=4;

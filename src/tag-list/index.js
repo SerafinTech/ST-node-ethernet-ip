@@ -49,7 +49,7 @@ class TagList {
         let pointer = 0;
 
         while (pointer < data.length) {
-
+            console.log(data.slice(pointer, pointer + 4), data.readUInt32LE(pointer));
             instanceID = data.readUInt32LE(pointer); //Parse instance ID
             pointer += 4;
 
