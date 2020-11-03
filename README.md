@@ -374,7 +374,7 @@ const config = {
   },
   inputInstance: {
     assembly: 101,
-    size: 4
+    size: 6
   }
 }
 
@@ -384,9 +384,22 @@ const conn = scanner.addConnection(config, 8, '192.168.86.42')
 // After first UDP packet is received
 conn.on('connected', () => {
   console.log('Connected')
-  console.log('input data => ', conn.inputData) // Display Input Data Buffer after connected. Only input data on this device are status bytes.
-  conn.outputData.writeUInt16LE(0xff, 4) // Set first 8 outputs to on, skipping the first two 16bit integer control bytes of device.
-  console.log('output data => ', conn.outputData)
+  console.log('input data => ', conn.inputData) // Display Input Data Buffer.
+  
+  console.log('output data => ', conn.outputData) // Display Output Data Buffer.
+  // Create alias for bits and integers (can be named what ever you want)
+  conn.addOutputBit(4, 0, 'out0') // Using outputData. Skip 4 bytes, use bit 0 and call it 'out0'
+  conn.addOutputBit(4, 1, 'out1') // Skip 4 bytes, use bit 1 and call it 'out1'
+  conn.addOutputInt(2, 'outputValue0') // Skip 2 bytes then use 16bit integer and call it 'value0'
+  conn.addInputBit(4, 7, 'in7') // Skip 4 bytes then use bit 7 and call it 'in7'
+  conn.addInputInt(2, 'inputValue0')
+  // Set values to be written to devices
+  conn.setValue('out0', true) 
+  conn.setValue('out1', false)
+  conn.setValue('value0', 1234)
+  // Read values from device connection
+  console.log(conn.getValue('in7'))
+  console.log(conn.getValue('inputValue0'))
 })
 
 // Called when UDP packets are not receiving. (Timeout is based on rpi setting)
