@@ -69,6 +69,16 @@ describe("Controller Class", () => {
 
             expect(plc.time).toMatchSnapshot();
         });
+
+        it("Default Unconnected Send timeout", () => {
+            const plc = new Controller();
+            expect(plc.state.unconnectedSendTimeout).toEqual(2000);
+        });
+
+        it("Custom Unconnected Send timeout", () => {
+            const plc = new Controller(true, { unconnectedSendTimeout: 5064 });
+            expect(plc.state.unconnectedSendTimeout).toEqual(5064);
+        });
     });
 
     describe("SendRRDataReceived Handler", () => {

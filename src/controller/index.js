@@ -11,7 +11,14 @@ const compare = (obj1, obj2) => {
 };
 
 class Controller extends ENIP {
-    constructor(connectedMessaging = true) {
+
+    /**
+     * 
+     * @param {boolean} [connectedMessaging=true] whether to use connected or unconnected messaging
+     * @param {object} [opts]
+     * @param {number} [opts.unconnectedSendTimeout=2000]
+     */
+    constructor(connectedMessaging = true, opts = {}) {
         super();
 
         this.state = {
@@ -38,6 +45,7 @@ class Controller extends ENIP {
             timeout_sp: 10000, //ms
             rpi: 10,
             fwd_open_serial: 0,
+            unconnectedSendTimeout: opts.unconnectedSendTimeout || 2000,
         };
 
         this.workers = {
@@ -381,7 +389,7 @@ class Controller extends ENIP {
         let msg;
         const connected = super.established_conn;
         if (connected === false) {
-            msg = UnconnectedSend.build(data, this.state.controller.path);
+            msg = UnconnectedSend.build(data, this.state.controller.path, this.state.unconnectedSendTimeout);
         } else {
             msg = data;
         }
