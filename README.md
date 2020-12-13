@@ -324,6 +324,22 @@ PLC.connect("192.168.1.1", 0).then(async () => {
 });
 ```
 
+#### Using unconnected messaging with custom timeout
+
+```javascript
+const { Controller, Tag, TagList, Structure } = require("st-ethernet-ip");
+
+const PLC = new Controller(false, { unconnectedSendTimeout: 5064 });
+
+PLC.connect("192.168.1.1", 0).then(async () => {
+    
+    const sampleTag = new Tag("sampleTag");
+
+    await PLC.readTag(sampleTag);
+    console.log(sampleTag.value);
+});
+```
+
 ### New Device Browser
 
 #### Find Devices On The Network
