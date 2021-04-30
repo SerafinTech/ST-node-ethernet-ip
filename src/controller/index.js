@@ -181,12 +181,19 @@ class Controller extends ENIP {
      * @returns {Promise}
      * @memberof ENIP
      */
-    async connect(IP_ADDR, SLOT = 0) {
+    async connect(IP_ADDR, SLOT = 0, path = false) {
         const { PORT } = CIP.EPATH.segments;
         const BACKPLANE = 1;
 
         this.state.controller.slot = SLOT;
-        this.state.controller.path = PORT.build(BACKPLANE, SLOT);
+
+        if(Buffer.isBuffer(path)) {
+            this.state.controller.path = path
+        } else {
+            this.state.controller.path = PORT.build(BACKPLANE, SLOT);
+        }
+
+        
 
         const sessid = await super.connect(IP_ADDR);
         if (!sessid) throw new Error("Failed to Register Session with Controller");
@@ -394,6 +401,84 @@ class Controller extends ENIP {
             msg = data;
         }
         super.write_cip(msg, connected, timeout, cb);
+    }
+
+    /**
+     * CIP Get Attribute Single
+     * connected messages.
+     */
+    async cipGetAttributeSingle(classID, instanceID, attributeID) {
+        const { GET_ATTRIBUTE_SINGLE } = CIP.MessageRouter.services;
+        const { LOGICAL } = CIP.EPATH.segments;
+
+        // Build Identity Object Logical Path Buffer
+        const identityPath = Buffer.concat([
+            LOGICAL.build(LOGICAL.types.ClassID, classID), 
+            LOGICAL.build(LOGICAL.types.InstanceID, instanceID), 
+            LOGICAL.build(LOGICAL.types.AttributeID, attributeID) 
+        ]);
+
+        // Message Router
+        const MR = CIP.MessageRouter.build(GET_ATTRIBUTE_SINGLE, identityPath, []);
+
+        this.write_cip(MR);
+
+        const cipErr = new Error("TIMEOUT occurred while GET ATTRIBUTE SINGLE");
+
+        // Wait for Response
+        const data = await promiseTimeout(
+            new Promise((resolve, reject) => {
+                this.on("Get Attribute Single", (err, data) => {
+                    if (err) reject(err);
+                    resolve(data);
+                });
+            }),
+            this.state.timeout_sp,
+            cipErr
+        );
+
+        this.removeAllListeners("Get Attribute Single");
+
+        return data;
+    }
+
+    /**
+     * CIP Get Attribute Single
+     * connected messages.
+     */
+     async cipSetAttributeSingle(classID, instanceID, attributeID, setData) {
+        const { SET_ATTRIBUTE_SINGLE } = CIP.MessageRouter.services;
+        const { LOGICAL } = CIP.EPATH.segments;
+
+        // Build Identity Object Logical Path Buffer
+        const identityPath = Buffer.concat([
+            LOGICAL.build(LOGICAL.types.ClassID, classID), 
+            LOGICAL.build(LOGICAL.types.InstanceID, instanceID), 
+            LOGICAL.build(LOGICAL.types.AttributeID, attributeID) 
+        ]);
+
+        // Message Router
+        const MR = CIP.MessageRouter.build(SET_ATTRIBUTE_SINGLE, identityPath, setData);
+
+        this.write_cip(MR);
+
+        const cipErr = new Error("TIMEOUT occurred while SET ATTRIBUTE SINGLE");
+
+        // Wait for Response
+        const data = await promiseTimeout(
+            new Promise((resolve, reject) => {
+                this.on("Set Attribute Single", (err, data) => {
+                    if (err) reject(err);
+                    resolve(data);
+                });
+            }),
+            this.state.timeout_sp,
+            cipErr
+        );
+
+        this.removeAllListeners("Set Attribute Single");
+
+        return data;
     }
 
     /**
