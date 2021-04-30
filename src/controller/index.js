@@ -658,11 +658,7 @@ class Controller extends ENIP {
                     timestamp: new Date()
                 })
                 .catch(e => {
-                    if (e.message) {
-                        throw new Error(`<SCAN_GROUP>\n ${e.message}`);
-                    } else {
-                        throw e;
-                    }
+                    return Promise.reject(e)
                 });
 
             await this.workers.group
@@ -671,15 +667,13 @@ class Controller extends ENIP {
                     timestamp: new Date()
                 })
                 .catch(e => {
-                    if (e.message) {
-                        throw new Error(`<SCAN_GROUP>\n ${e.message}`);
-                    } else {
-                        throw e;
-                    }
+                    return Promise.reject(e)
                 });
 
             await delay(this.state.scan_rate);
         }
+
+        return Promise.resolve()
     }
 
     /**
