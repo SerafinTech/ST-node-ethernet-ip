@@ -145,7 +145,10 @@ class Structure extends Tag {
                     if (member.type.arrayDims > 0) {
                         let array = [];
                         for (let i = 0; i < member.info * 4; i+=4) {
-                            array.push(data.readUInt32LE(member.offset + i));
+                            let bitString32bitValue = data.readUInt32LE(member.offset + i);
+                            for (let j = 0; j < 32; j++) {
+                                array.push(!!(bitString32bitValue >> j & 0x01));
+                            }
                         }
                         structValues[member.name] = array;
                     } else {
