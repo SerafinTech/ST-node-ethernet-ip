@@ -26,7 +26,7 @@ class Structure extends Tag {
     }
 
     parseValue (data) {
-        if (this._template._name === "ASCIISTRING82" || this._template._name === "STRING") {
+        if (this._template._members.length === 2 && this._template._members[0].name === "LEN" && this._template._members[1].name === "DATA") {
             return bufferToString(data);
         } else {
             return this._parseReadData(data, this._template);
@@ -37,7 +37,7 @@ class Structure extends Tag {
         if (!this._template) {
             super.value = newValue;
         } else {
-            if (this._template._name === "ASCIISTRING82" || this._template._name === "STRING") {
+            if (this._template._members.length === 2 && this._template._members[0].name === "LEN" && this._template._members[1].name === "DATA") {
                 super.value = stringToBuffer(newValue, this._template._attributes.StructureSize);
             } else {
                 super.value = this._parseWriteData (newValue, this._template);
