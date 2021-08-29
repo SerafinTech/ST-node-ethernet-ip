@@ -145,7 +145,10 @@ class Structure extends Tag {
                     if (member.type.arrayDims > 0) {
                         let array = [];
                         for (let i = 0; i < member.info * 4; i+=4) {
-                            array.push(data.readUInt32LE(member.offset + i));
+                            let bitString32bitValue = data.readUInt32LE(member.offset + i);
+                            for (let j = 0; j < 32; j++) {
+                                array.push(!!(bitString32bitValue >> j & 0x01));
+                            }
                         }
                         structValues[member.name] = array;
                     } else {
@@ -235,7 +238,12 @@ class Structure extends Tag {
                 case BIT_STRING:
                     if (member.type.arrayDims > 0) {
                         for (let i = 0; i < member.info; i++) {
-                            data.writeUInt32LE(structValues[member.name][i], member.offset + (i * 4));
+                            let bitString32bitValue = 0;
+                            for (let j = i*32; j < (i+1)*32; j++) {
+                                if (j > structValues[member.name].length) break;
+                                bitString32bitValue |= (structValues[member.name][j] & 1) << j;
+                            }
+                            data.writeUInt32LE(bitString32bitValue >>> 0, member.offset + (i * 4));
                         }
                     } else {
                         data.writeUInt32LE(structValues[member.name],member.offset);
