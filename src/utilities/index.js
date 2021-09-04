@@ -31,7 +31,7 @@ const bufferToString = buff => {
 
 const stringToBuffer = (str, len = 88) => {
     const buf = Buffer.alloc(len);
-    str = str.slice(0, 82);
+    str = str.slice(0, len - 6);
     buf.writeUInt32LE(str.length);
     Buffer.from(str).copy(buf, 4);
     return buf;
@@ -41,9 +41,9 @@ const objToString = obj => {
     return String.fromCharCode(...obj.DATA.slice(0,obj.LEN));
 };
 
-const stringToObj = str => {
+const stringToObj = (str, len = 82) => {
     
-    const array = Array(82).fill(0);
+    const array = Array(len).fill(0);
     [...str].forEach( (c, k) => {
         array[k] = c.charCodeAt();
     });
