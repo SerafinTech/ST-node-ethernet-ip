@@ -8,6 +8,7 @@ const {bufferToString, stringToBuffer} = require("../utilities");
 class Structure extends Tag {
     constructor (tagname, taglist, program = null, datatype = null, keepAlive = 0) {
         super(tagname, program, datatype, keepAlive);
+        this._valueObj = null;
         this._taglist = taglist;
         this._template = taglist.getTemplateByTag(tagname, program);
         if (this._template) super.type = CIP.DataTypes.Types.STRUCT;
@@ -17,8 +18,13 @@ class Structure extends Tag {
         if (!this._template) {
             return super.value;
         } else {
-            if(super.value) {
-                return this.parseValue(super.value);
+            if (super.value) {
+                if (this._valueObj) {
+                    return this._valueObj
+                } else {
+                    this._valueObj = this.parseValue(super.value);
+                    return this._valueObj
+                }               
             } else {
                 return null;
             }
@@ -34,6 +40,7 @@ class Structure extends Tag {
             super.value = newValue;
         } else {
             super.value = this._parseWriteData (newValue, this._template);
+            this._valueObj = this.parseValue(super.value);
         }
     }
 
@@ -48,6 +55,8 @@ class Structure extends Tag {
             buf.writeUInt16LE(STRUCT, 0);
             buf.writeUInt16LE(this._template._attributes.StructureHandle, 2);
             buf.writeUInt16LE(size, 4);
+
+            super.value = this._parseWriteData (this._valueObj, this._template);
             
             return MessageRouter.build(WRITE_TAG, tag.path, Buffer.concat([buf, super.value]));  
         }

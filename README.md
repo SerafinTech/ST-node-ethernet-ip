@@ -323,6 +323,35 @@ PLC.connect("192.168.1.1", 0).then(async () => {
     
 });
 ```
+#### Reading/Writing Structures
+
+```javascript
+const { Controller, Tag, TagList, Structure } = require("st-ethernet-ip");
+
+const PLC = new Controller();
+
+PLC.connect("192.168.1.1", 0).then(async () => {
+    
+    const tagList = new TagList();
+    await PLC.getControllerTagList(tagList);
+
+    //Setup 'Structure1' Tag
+    const structure1 = new Structure('Structure1', tagList, {Optional Program Name});
+    
+    //Read value from PLC
+    await PLC.readTag(structure1);
+
+    //Display entire structure
+    console.log(structure1.value);
+
+    //Change value of structure member
+    structure1.value.Integer1 = 3;
+
+    //Write Changes to PLC
+    await PLC.writeTag(stringStructure)
+    
+});
+```
 
 #### Using unconnected messaging with custom timeout
 
