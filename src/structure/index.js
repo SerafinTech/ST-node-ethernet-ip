@@ -26,22 +26,14 @@ class Structure extends Tag {
     }
 
     parseValue (data) {
-        if (this._template._members.length === 2 && this._template._members[0].name === "LEN" && this._template._members[1].name === "DATA") {
-            return bufferToString(data);
-        } else {
-            return this._parseReadData(data, this._template);
-        }
+        return this._parseReadData(data, this._template);
     }
 
     set value (newValue) {
         if (!this._template) {
             super.value = newValue;
         } else {
-            if (this._template._members.length === 2 && this._template._members[0].name === "LEN" && this._template._members[1].name === "DATA") {
-                super.value = stringToBuffer(newValue, this._template._attributes.StructureSize);
-            } else {
-                super.value = this._parseWriteData (newValue, this._template);
-            }
+            super.value = this._parseWriteData (newValue, this._template);
         }
     }
 
@@ -79,6 +71,10 @@ class Structure extends Tag {
     }
 
     _parseReadData (data, template) {
+
+        if (template._members.length === 2 && template._members[0].name === "LEN" && template._members[1].name === "DATA")
+            return bufferToString(data);
+
         let structValues = {};
         
         const {SINT, INT, DINT, REAL, LINT, BIT_STRING, BOOL, STRUCT } = CIP.DataTypes.Types;
@@ -183,6 +179,9 @@ class Structure extends Tag {
     }
 
     _parseWriteData (structValues, template) {
+        if (template._members.length === 2 && template._members[0].name === "LEN" && template._members[1].name === "DATA")
+            return stringToBuffer(structValues, template._attributes.StructureSize);
+
         const data = Buffer.alloc(template._attributes.StructureSize);
 
         const {SINT, INT, DINT, REAL, LINT, BIT_STRING, BOOL, STRUCT } = CIP.DataTypes.Types;
