@@ -87,7 +87,6 @@ class Structure extends Tag {
     _parseReadData (data, template) {
 
         if (template._members.length === 2 && template._members[0].name === "LEN" && template._members[1].name === "DATA")
-            //console.log(bufferToString(data))
             return bufferToString(data);
 
         let structValues = {};

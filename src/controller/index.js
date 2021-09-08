@@ -977,7 +977,6 @@ class Controller extends ENIP {
         for (let msg of messages) {
             if (msg.data) {
                 this.write_cip(msg.data);
-                console.log('Write Group')
                 // Wait for Controller to Respond
                 const data = await promiseTimeout(
                     new Promise((resolve, reject) => {
