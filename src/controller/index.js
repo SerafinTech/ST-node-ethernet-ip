@@ -2,7 +2,10 @@ const { ENIP, CIP } = require("../enip");
 const dateFormat = require("dateformat");
 const TagGroup = require("../tag-group");
 const { delay, promiseTimeout } = require("../utilities");
+const TagList = require("../tag-list");
+const {Structure} = require("../structure")
 const Queue = require("task-easy");
+const Tag = require("../tag");
 
 const compare = (obj1, obj2) => {
     if (obj1.priority > obj2.priority) return true;
@@ -46,6 +49,7 @@ class Controller extends ENIP {
             rpi: 10,
             fwd_open_serial: 0,
             unconnectedSendTimeout: opts.unconnectedSendTimeout || 2000,
+            tagList: new TagList(),
         };
 
         this.workers = {
@@ -200,6 +204,8 @@ class Controller extends ENIP {
 
         // Fetch Controller Properties and Wall Clock
         await this.readControllerProps();
+
+        await this.getControllerTagList(this.state.tagList)
     }
 
     /**
@@ -971,7 +977,7 @@ class Controller extends ENIP {
         for (let msg of messages) {
             if (msg.data) {
                 this.write_cip(msg.data);
-                
+                console.log('Write Group')
                 // Wait for Controller to Respond
                 const data = await promiseTimeout(
                     new Promise((resolve, reject) => {
@@ -1289,6 +1295,29 @@ class Controller extends ENIP {
     //     // TODO: Implement Handler if Necessary
     // }
     // endregion
+    get tagList() {
+        return this.state.tagList.tags
+    }
+
+    get templateList() {
+        return this.state.tagList.templates
+    }
+
+    newTag(tagname, program = null, subscribe = true) {
+        let template = this.state.tagList.getTemplateByTag(tagname, program); 
+        let tag = null
+        if (template) {
+            tag = new Structure(tagname, this.state.tagList, program)
+            if (subscribe)
+                this.subscribe(tag)
+            return tag
+        } else {
+            tag = new Tag(tagname, program)
+            if (subscribe)
+                this.subscribe(tag)
+            return tag
+        }
+    }
 }
 
 function getRandomInt(max) {

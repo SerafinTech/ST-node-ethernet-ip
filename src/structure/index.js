@@ -4,6 +4,7 @@ const { WRITE_TAG, WRITE_TAG_FRAGMENTED } = MessageRouter.services;
 const Tag = require("../tag");
 const Template = require("./template");
 const {bufferToString, stringToBuffer} = require("../utilities");
+const equals = require("deep-equal");
 
 class Structure extends Tag {
     constructor (tagname, taglist, program = null, datatype = null, keepAlive = 0) {
@@ -56,7 +57,8 @@ class Structure extends Tag {
             buf.writeUInt16LE(this._template._attributes.StructureHandle, 2);
             buf.writeUInt16LE(size, 4);
 
-            super.value = this._parseWriteData (this._valueObj, this._template);
+            if (!equals(this._parseWriteData (this._valueObj, this._template), super.value))
+                super.value = this._parseWriteData (this._valueObj, this._template);
             
             return MessageRouter.build(WRITE_TAG, tag.path, Buffer.concat([buf, super.value]));  
         }
@@ -75,6 +77,9 @@ class Structure extends Tag {
             buf.writeUInt16LE(size, 4);
             buf.writeUInt32LE(offset, 6);
             
+            if (!equals(this._parseWriteData (this._valueObj, this._template), super.value))
+                super.value = this._parseWriteData (this._valueObj, this._template);
+
             return MessageRouter.build(WRITE_TAG_FRAGMENTED, tag.path, Buffer.concat([buf, value]));  
         }
     }
@@ -82,6 +87,7 @@ class Structure extends Tag {
     _parseReadData (data, template) {
 
         if (template._members.length === 2 && template._members[0].name === "LEN" && template._members[1].name === "DATA")
+            //console.log(bufferToString(data))
             return bufferToString(data);
 
         let structValues = {};
@@ -286,6 +292,41 @@ class Structure extends Tag {
             /* eslint-enable indent */   
         });
         return data;
+    }
+
+    set controller_value(newValue) {
+        if (!equals(newValue, this.state.tag.controllerValue)) {
+            let lastValue = null
+            if(this.state.tag.controllerValue !== null) 
+                lastValue = Buffer.from(this.state.tag.controllerValue);
+                   
+            this.state.tag.controllerValue = Buffer.from(newValue);
+
+            const { stage_write } = this.state.tag;
+            if (!stage_write) {
+                this.state.tag.value = newValue;
+                this._valueObj = this.parseValue(super.value);
+            }
+
+            this.state.timestamp = new Date();
+
+
+            if (lastValue !== null) this.emit("Changed", this, this.parseValue(lastValue));
+            else this.emit("Initialized", this);
+        } else {
+            if (this.state.keepAlive > 0) {
+                const now = new Date();
+                if (now - this.state.timestamp >= this.state.keepAlive * 1000) {
+                    this.state.tag.controllerValue = newValue;
+
+                    const { stage_write } = this.state.tag;
+                    if (!stage_write) this.state.tag.value = newValue;
+                    this.state.timestamp = now;
+
+                    this.emit("KeepAlive", this);
+                }
+            }
+        }
     }
 
 }

@@ -239,7 +239,8 @@ class Tag extends EventEmitter {
      */
     set controller_value(newValue) {
         if (!equals(newValue,this.state.tag.controllerValue)) {
-            const lastValue = this.state.tag.controllerValue;
+            let lastValue = null
+            lastValue = this.state.tag.controllerValue;
             this.state.tag.controllerValue = newValue;
 
             const { stage_write } = this.state.tag;
