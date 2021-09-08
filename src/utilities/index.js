@@ -25,8 +25,9 @@ const delay = ms => new Promise(resolve => setTimeout(resolve, ms));
 
 // Helper Funcs to process strings
 const bufferToString = buff => {
-    const len = buff.readUInt32LE();
-    return buff.slice(4, len + 4).toString();
+    let newBuff = Buffer.from(buff)
+    const len = newBuff.readUInt32LE();
+    return newBuff.slice(4, len + 4).toString();
 };
 
 const stringToBuffer = (str, len = 88) => {

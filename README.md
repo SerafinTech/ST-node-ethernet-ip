@@ -231,6 +231,56 @@ PLC.forEach(tag => {
 ```
 ### Newest Capabilities
 
+#### New Integrated Tag/Structure into Controller 
+
+```javascript
+const {Controller} = require('st-ethernet-ip');
+
+const PLC = new Controller()
+
+PLC.connect('192.168.86.200', 0).then(async () => {
+    
+    //Display controller tag list
+    console.log(PLC.tagList)
+
+    //Add controller scope atomic tag 'Integer3'
+    const tag = PLC.newTag('Integer3')
+
+    //Add program 'MainProgram2' scope structure tag 'UDT_INST1'
+    const tag2 = PLC.newTag('UDT_INST1', 'MainProgram2')
+
+    //Read each tag
+    await PLC.readTag(tag)
+    await PLC.readTag(tag2)
+
+    //Display values
+    console.log(tag.value)
+    console.log(tag2.value)
+
+    //Change structure member 'VAR2_STRING' value
+    tag2.value.VAR2_STRING = "Hello World!"
+
+    //Write new tag value to PLC
+    await PLC.writeTag(tag2)
+
+    //Scan for changes in values in PLC or modified local values and updates at a rate of every 50mS
+    PLC.scan_rate = 50;
+    PLC.scan();
+
+
+    PLC.forEach(tag => {
+    // Called if Tag.controller_value changes
+    tag.on("Changed", (tag, oldValue) => {
+        console.log("FROM:", oldValue)
+        console.log("TO:", tag.value);
+    });
+  });
+}).catch(err => {
+  console.log(err)
+})
+
+```
+
 #### Getting a List of Available Controller Tags and Structure Templates
 
 ```javascript
