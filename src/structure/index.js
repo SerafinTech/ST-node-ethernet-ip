@@ -292,6 +292,10 @@ class Structure extends Tag {
         });
         return data;
     }
+    
+    get controller_value() {
+        return this.state.tag.controllerValue;
+    }
 
     set controller_value(newValue) {
         if (!equals(newValue, this.state.tag.controllerValue)) {
