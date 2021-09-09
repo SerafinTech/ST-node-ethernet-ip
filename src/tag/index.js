@@ -227,7 +227,9 @@ class Tag extends EventEmitter {
      * @property {number|string|boolean|object} new value
      */
     set value(newValue) {
-        this.state.tag.stage_write = true;
+        if (!equals(newValue, this.state.tag.value))
+            this.state.tag.stage_write = true;
+        
         this.state.tag.value = newValue;
     }
 
