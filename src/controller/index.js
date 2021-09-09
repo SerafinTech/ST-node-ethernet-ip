@@ -1295,7 +1295,7 @@ class Controller extends ENIP {
     // }
     // endregion
     get tagList() {
-        return this.state.tagList.tags
+        return this.state.tagList.tags.filter(tag => (!tag.type.reserved))
     }
 
     get templateList() {
