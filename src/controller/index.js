@@ -605,6 +605,7 @@ class Controller extends ENIP {
      * @memberof Controller
      */
     writeTag(tag, value = null, size = 0x01) {
+        if(tag.writeObjToValue) { tag.writeObjToValue() }
         return this.workers.write.schedule(this._writeTag.bind(this), [tag, value, size], {
             priority: 1,
             timestamp: new Date()
@@ -752,12 +753,15 @@ class Controller extends ENIP {
         const data = await promiseTimeout(
             new Promise((resolve, reject) => {
                 this.on("Read Tag", async (err, data) => {
-                    if (err && err.generalStatusCode !== 6) {
+                    if (err && err.generalStatusCode !== 6 && !(err.generalStatusCode === 255 && err.extendedStatus.toString() === [8453].toString())) {
                         reject(err);
                         return;                     
                     }
 
-                    if (err && err.generalStatusCode === 6) {
+                    if(err && err.generalStatusCode === 255 && err.extendedStatus.toString() === [8453].toString()) {
+                        tag.state.read_size--;
+                        this._readTag(tag).catch(reject)
+                    } else if (err && err.generalStatusCode === 6) {
                         await this._readTagFragmented(tag, size).catch(reject);
                         resolve(null);
                     } else {
@@ -836,9 +840,10 @@ class Controller extends ENIP {
      * @memberof Controller
      */
     async _writeTag(tag, value = null, size = 0x01) {
-        if (tag.state.tag.value.length > 480) {
+        console.log('Write')
+        if (tag.state.tag.value.length > 480)
             return this._writeTagFragmented(tag, value, size);
-        }
+
         const MR = tag.generateWriteMessageRequest(value, size);
 
         this.write_cip(MR);
@@ -884,6 +889,7 @@ class Controller extends ENIP {
      * @memberof Controller
      */
     async _writeTagFragmented(tag, value = null, size = 0x01) {
+        console.log('Write Frag')
 
         let offset = 0;
         const maxPacket = 470;
@@ -902,7 +908,6 @@ class Controller extends ENIP {
                 // Full Tag Writing
                 this.on("Write Tag Fragmented", (err, data) => {
                     if (err) return reject(err);
-                    
                     offset += maxPacket;
                     numWrites ++;
                     if (numWrites < totalWrites) {
@@ -1294,6 +1299,8 @@ class Controller extends ENIP {
     //     // TODO: Implement Handler if Necessary
     // }
     // endregion
+
+
     get tagList() {
         return this.state.tagList.tags.filter(tag => (!tag.type.reserved))
     }
@@ -1302,20 +1309,37 @@ class Controller extends ENIP {
         return this.state.tagList.templates
     }
 
-    newTag(tagname, program = null, subscribe = true) {
+    async getTagArraySize(tag) {
+        let i = 1;
+        while (true) {
+            tag.state.read_size = i
+            await this.readTag(tag) 
+            if (tag.state.read_size !== i) 
+                break;
+            i++
+        }
+
+        return tag.state.read_size
+    }
+
+    newTag(tagname, program = null, subscribe = true, arrayDims = 0, arraySize = 0x01) {
         let template = this.state.tagList.getTemplateByTag(tagname, program); 
         let tag = null
         if (template) {
-            tag = new Structure(tagname, this.state.tagList, program)
+            tag = new Structure(tagname, this.state.tagList, program, null, 0, arrayDims, arraySize)
             if (subscribe)
                 this.subscribe(tag)
             return tag
         } else {
-            tag = new Tag(tagname, program)
+            tag = new Tag(tagname, program, null, 0, arrayDims, arraySize)
             if (subscribe)
                 this.subscribe(tag)
             return tag
         }
+    }
+
+    getTagByName(name) {
+        return Object.values(this.state.subs.state.tags).find(({state}) => state.tag.name === name) 
     }
 }
 

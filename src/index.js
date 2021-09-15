@@ -7,6 +7,7 @@ const TagList = require("./tag-list");
 const { Structure } = require("./structure");
 const Browser = require("./browser");
 const IO = require("./io");
+const ControllerManager = require("./controller-manager")
 
-module.exports = { Controller, Tag, TagGroup, EthernetIP, util, TagList, Structure, Browser, IO};
+module.exports = { Controller, Tag, TagGroup, EthernetIP, util, TagList, Structure, Browser, IO, ControllerManager};
 
