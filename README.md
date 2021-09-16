@@ -38,13 +38,12 @@ cont.connect();
 //addTag(tagname, program = null, arrayDims = 0, arraySize = 0x01)
 cont.addTag('TheInteger')
 
-controller.on('TagChanged', (tag, prevValue) => {
+cont.on('TagChanged', (tag, prevValue) => {
   console.log(tag.name, ' changed from ', prevValue, ' => ', tag.value)
 })
 
-controller.on('error', (e) => {
-  if (e.message) { emess = e.message; } else { emess = e}
-  console.log(e.message)
+cont.on('error', (e) => {
+  console.log(e)
 })
 ```
 
