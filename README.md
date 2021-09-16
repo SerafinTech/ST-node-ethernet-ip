@@ -19,7 +19,91 @@ npm install st-ethernet-ip --save
 
 How the heck does this thing work anyway? Great question!
 
-### The Basics
+### The Basics - New And Improved (less mess)
+
+#### Using Comnnection Manager
+
+```javascript
+//Connection Manager automagically reconnects to controller that have lost connection. Scanner auto initiated.
+
+const {ControllerManager} = require('st-ethernet-ip')
+
+const cm = new ControllerManager();
+
+//addController(ipAddress, slot = 0, rpi = 100, connected = true, retrySP = 3000, opts = {})
+const cont = cm.addController('192.168.86.200');
+
+cont.connect();
+
+//addTag(tagname, program = null, arrayDims = 0, arraySize = 0x01)
+cont.addTag('TheInteger')
+
+controller.on('TagChanged', (tag, prevValue) => {
+  console.log(tag.name, ' changed from ', prevValue, ' => ', tag.value)
+})
+
+controller.on('error', (e) => {
+  if (e.message) { emess = e.message; } else { emess = e}
+  console.log(e.message)
+})
+```
+
+### Arrays / UDTs
+
+```javascript
+const {Controller} = require('st-ethernet-ip')
+
+const PLC = new Controller();
+
+//A taglist and structure templates are automatically retrieved after connected
+PLC.connect("192.168.86.200", 0).then(async () => {
+
+    // String UDT
+    const tag2 = PLC.newTag('testString')
+
+    // An array of strings with 1 dimension (only 1 currently supported)
+    const tag3 = PLC.newTag('stringArray', null, true, 1)
+
+    // A custom UDT tag
+    const tag4 = PLC.newTag('bigUDT')
+    
+    // Automatically determine the size of the array and store in tag
+    await PLC.getTagArraySize(tag3)
+    
+    // Read tags
+    await PLC.readTag(tag2)
+    await PLC.readTag(tag3)
+    await PLC.readTag(tag4)
+
+
+    // Display tag as a javascript object
+    console.log(tag2.value)
+    console.log(tag3.value)
+    console.log(tag4.value)
+
+    //modify string value
+    tag2.value = 'Hello World!'
+
+    //modify an array of string values
+    tag3.value[19] = 'The End'
+    
+    //set value of member of a UDT called 'Struct1' which is an array of booleans
+    tag4.value.Struct1[3] = true;
+
+    //set value of member of a UDT called 'VAR2_STRING' which is an array of another UDT member called 'Group1'
+    tag4.value.Group1[2].VAR2_STRING = 'What Do You Mean?'
+    
+    //Write the tag values
+    await PLC.writeTag(tag2)
+    await PLC.writeTag(tag3)
+    await PLC.writeTag(tag4)
+    
+}).catch(async e => {
+    console.log(e)
+});
+```
+
+### The Basics - Old School
 
 #### Getting Connected
 

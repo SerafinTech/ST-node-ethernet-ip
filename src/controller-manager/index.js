@@ -71,7 +71,7 @@ class extController extends EventEmitter{
   }
 
   errorHandle(e) {
-    this.emit('error', e)
+    this.emit('Error', e)
 
     if(e.message && (e.message.slice(0,7) === 'TIMEOUT' || e.message.slice(0,6) === 'SOCKET')) {
 
