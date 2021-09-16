@@ -7,8 +7,8 @@ const {bufferToString, stringToBuffer} = require("../utilities");
 const equals = require("deep-equal");
 
 class Structure extends Tag {
-    constructor (tagname, taglist, program = null, datatype = null, keepAlive = 0) {
-        super(tagname, program, datatype, keepAlive);
+    constructor (tagname, taglist, program = null, datatype = null, keepAlive = 0, arrayDims = 0, arraySize = 0x01) {
+        super(tagname, program, datatype, keepAlive, arrayDims, arraySize);
         this._valueObj = null;
         this._taglist = taglist;
         this._template = taglist.getTemplateByTag(tagname, program);
@@ -33,16 +33,34 @@ class Structure extends Tag {
     }
 
     parseValue (data) {
-        return this._parseReadData(data, this._template);
+        if (this.state.tag.arrayDims > 0) {
+            return this._parseReadDataArray(data)
+        } else {
+            return this._parseReadData(data, this._template);
+        }
+        
     }
 
     set value (newValue) {
         if (!this._template) {
             super.value = newValue;
         } else {
-            super.value = this._parseWriteData (newValue, this._template);
-            this._valueObj = this.parseValue(super.value);
+            if (this.state.tag.arrayDims > 0) {
+                super.value = this._parseWriteDataArray(newValue);
+                this._valueObj = this.parseValue(super.value);
+            } else {
+                super.value = this._parseWriteData (newValue, this._template);
+                this._valueObj = this.parseValue(super.value);
+            }
         }
+    }
+
+    writeObjToValue() {
+        if (this.state.tag.arrayDims > 0) {
+            super.value = this._parseWriteDataArray(this._valueObj);
+        } else {
+            super.value = this._parseWriteData (this._valueObj, this._template);
+        }             
     }
 
     generateWriteMessageRequest(value = null, size = 0x01) {
@@ -55,10 +73,11 @@ class Structure extends Tag {
             const buf = Buffer.alloc(6);
             buf.writeUInt16LE(STRUCT, 0);
             buf.writeUInt16LE(this._template._attributes.StructureHandle, 2);
-            buf.writeUInt16LE(size, 4);
-
-            if (!equals(this._parseWriteData (this._valueObj, this._template), super.value))
-                super.value = this._parseWriteData (this._valueObj, this._template);
+            if (Array.isArray(this.value)) {
+                buf.writeUInt16LE(this.value.length, 4);
+            } else {
+                buf.writeUInt16LE(size, 4);
+            }        
             
             return MessageRouter.build(WRITE_TAG, tag.path, Buffer.concat([buf, super.value]));  
         }
@@ -74,18 +93,18 @@ class Structure extends Tag {
             const buf = Buffer.alloc(10);
             buf.writeUInt16LE(STRUCT, 0);
             buf.writeUInt16LE(this._template._attributes.StructureHandle, 2);
-            buf.writeUInt16LE(size, 4);
+            if (Array.isArray(this.value)) {
+                buf.writeUInt16LE(this.value.length, 4);
+            } else {
+                buf.writeUInt16LE(size, 4);
+            }
             buf.writeUInt32LE(offset, 6);
-            
-            if (!equals(this._parseWriteData (this._valueObj, this._template), super.value))
-                super.value = this._parseWriteData (this._valueObj, this._template);
 
             return MessageRouter.build(WRITE_TAG_FRAGMENTED, tag.path, Buffer.concat([buf, value]));  
         }
     }
 
     _parseReadData (data, template) {
-
         if (template._members.length === 2 && template._members[0].name === "LEN" && template._members[1].name === "DATA")
             return bufferToString(data);
 
@@ -192,6 +211,14 @@ class Structure extends Tag {
         return structValues;
     }
 
+    _parseReadDataArray(data) {
+        let array = [];
+        for (let i = 0; i < data.length; i+=this._template._attributes.StructureSize) {
+            array.push(this._parseReadData(data.slice(i),this._template))
+        }
+        return array
+    }
+
     _parseWriteData (structValues, template) {
         if (template._members.length === 2 && template._members[0].name === "LEN" && template._members[1].name === "DATA")
             return stringToBuffer(structValues, template._attributes.StructureSize);
@@ -291,6 +318,16 @@ class Structure extends Tag {
             /* eslint-enable indent */   
         });
         return data;
+    }
+
+    _parseWriteDataArray (newValue) {
+        let buf = Buffer.alloc(0)
+
+        newValue.forEach(value => {
+            buf = Buffer.concat([buf, this._parseWriteData(value, this._template)])
+        })
+        
+        return buf
     }
     
     get controller_value() {

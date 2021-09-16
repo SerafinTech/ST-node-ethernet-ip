@@ -10,7 +10,7 @@ const equals = require("deep-equal");
 // Static Class Property - Tracks Instances
 let instances = 0;
 class Tag extends EventEmitter {
-    constructor(tagname, program = null, datatype = null, keepAlive = 0, arrayDims = 0) {
+    constructor(tagname, program = null, datatype = null, keepAlive = 0, arrayDims = 0, arraySize = 0x01) {
         super();
 
         if (!Tag.isValidTagname(tagname)) throw new Error("Tagname Must be of Type <string>");
@@ -95,7 +95,7 @@ class Tag extends EventEmitter {
                 program: program,
                 stage_write: false
             },
-            read_size: 0x01,
+            read_size: arraySize,
             error: { code: null, status: null },
             timestamp: new Date(),
             instance: hash(instanceBuf),
@@ -217,6 +217,14 @@ class Tag extends EventEmitter {
      * @returns {number|string|boolean|object} value
      */
     get value() {
+        if (Array.isArray(this.state.tag.value)) {
+            let prevValue = [...this.state.tag.value]
+            setTimeout(() => {
+                if (!equals(prevValue, this.state.tag.value))
+                    this.state.tag.stage_write = true;
+            }, 0)
+        }
+        
         return this.state.tag.value;
     }
 

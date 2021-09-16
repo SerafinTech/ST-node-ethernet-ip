@@ -172,6 +172,9 @@ class TagGroup extends EventEmitter {
         for (let key of Object.keys(tags)) {
             const tag = tags[key];
 
+            if (tag.value !== null && tag.type === "STRUCT")
+                tag.writeObjToValue();
+
             if (tag.value !== null && !equals(tag.state.tag.value, tag.controller_value)) {
                 // Build Current Message
                 let msg = tag.generateWriteMessageRequest();

@@ -166,8 +166,8 @@ class ENIP extends Socket {
 
         // Connect to Controller and Then Send Register Session Packet
         await promiseTimeout(
-            new Promise(resolve => {
-                super.connect(
+            new Promise((resolve, reject)=> {
+                let socket = super.connect(
                     EIP_PORT,
                     IP_ADDR,
                     () => {
@@ -178,6 +178,10 @@ class ENIP extends Socket {
                         resolve();
                     }
                 );
+
+                socket.on('error', err => {
+                    reject(new Error("SOCKET error"));
+                })
             }),
             timeoutSP,
             connectErr
@@ -359,7 +363,6 @@ class ENIP extends Socket {
     _handleCloseEvent(hadError) {
         this.state.session.established = false;
         this.state.TCP.established = false;
-        if (hadError) throw new Error("Socket Transmission Failure Occurred!");
     }
     // endregion
 }

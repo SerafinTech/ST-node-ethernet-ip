@@ -44,7 +44,6 @@ class TagList {
      * @returns {number} Last instance id parsed
      */
     _parseAttributeListResponse(data, program) {
-        
         let instanceID;
         let pointer = 0;
 
@@ -69,7 +68,7 @@ class TagList {
                 id: instanceID,
                 name: tagName,
                 type: this._parseTagType(tagType),
-                program: program 
+                program: program
             };
             
             if (lastTag !== -1) {
@@ -190,7 +189,7 @@ class TagList {
     getTemplateByTag(tagName, program = null) {
 
         const tagArray = tagName.split(".");
-        const tag = this.tags.find(tag => tag.name.toLowerCase() === tagArray[0].toLowerCase() && tag.program === program);
+        const tag = this.tags.find(tag => tag.name.toLowerCase() === tagArray[0].toLowerCase() && String(tag.program).toLowerCase() === String(program).toLowerCase());
 
         if (tag) {
             let finalTemplate = this.templates[tag.type.code];
