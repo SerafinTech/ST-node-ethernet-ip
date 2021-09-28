@@ -181,7 +181,7 @@ class Controller extends ENIP {
      *
      * @override
      * @param {string} IP_ADDR - IPv4 Address (can also accept a FQDN, provided port forwarding is configured correctly.)
-     * @param {number} SLOT - Controller Slot Number (0 if CompactLogix)
+     * @param {number|Buffer} SLOT - Controller Slot Number (0 if CompactLogix), or a Buffer representing the whole routing path
      * @returns {Promise}
      * @memberof ENIP
      */
@@ -189,8 +189,14 @@ class Controller extends ENIP {
         const { PORT } = CIP.EPATH.segments;
         const BACKPLANE = 1;
 
-        this.state.controller.slot = SLOT;
-        this.state.controller.path = PORT.build(BACKPLANE, SLOT);
+        if (typeof SLOT === "number") {
+            this.state.controller.slot = SLOT;
+            this.state.controller.path = PORT.build(BACKPLANE, SLOT);
+        } else if (Buffer.isBuffer(SLOT)) {
+            this.state.controller.path = SLOT;
+        } else {
+            throw new Error("Invalid slot parameter type, must be either a number or a Buffer");
+        }
 
         const sessid = await super.connect(IP_ADDR);
         if (!sessid) throw new Error("Failed to Register Session with Controller");
