@@ -840,7 +840,7 @@ class Controller extends ENIP {
      * @memberof Controller
      */
     async _writeTag(tag, value = null, size = 0x01) {
-        if (tag.state.tag.value.length > 400)
+        if (tag.state.tag.value.length > (480 - tag.path.length))
             return this._writeTagFragmented(tag, value, size);
 
         const MR = tag.generateWriteMessageRequest(value, size);
@@ -889,7 +889,7 @@ class Controller extends ENIP {
      */
     async _writeTagFragmented(tag, value = null, size = 0x01) {
         let offset = 0;
-        const maxPacket = 400;
+        const maxPacket = 480 - tag.path.length;
         let valueFragment = tag.state.tag.value.slice(offset, maxPacket);
         let MR = tag.generateWriteMessageRequestFrag(offset, valueFragment, size);
 
