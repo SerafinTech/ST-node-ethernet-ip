@@ -47,8 +47,9 @@ class extController extends EventEmitter{
 
     this.PLC.connect(this.ipAddress, this.slot).then(async () => {
       this.connected = true;
+      this.emit('Connected');
       this.PLC.scan_rate = this.rpi;
-       
+      
       this.tags.forEach(tag => {
         tag.tag = this.PLC.newTag(tag.tagname, tag.program, true, tag.arrayDims, tag.arraySize)
         this.addTagEvents(tag.tag)
@@ -77,7 +78,7 @@ class extController extends EventEmitter{
 
       this.connected = false;
       this.PLC.destroy();
-  
+      this.emit('Disconnected');
       setTimeout(() => {this.connect()}, this.retryTimeSP)
 
     }
