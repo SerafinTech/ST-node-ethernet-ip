@@ -189,13 +189,14 @@ class TagList {
     getTemplateByTag(tagName, program = null) {
 
         const tagArray = tagName.split(".");
-        const tag = this.tags.find(tag => tag.name.toLowerCase() === tagArray[0].toLowerCase() && String(tag.program).toLowerCase() === String(program).toLowerCase());
+        const tag = this.tags.find(tag => tag.name.toLowerCase().replace(/\[.*/, "") === tagArray[0].toLowerCase().replace(/\[.*/, "") && String(tag.program).toLowerCase() === String(program).toLowerCase());
 
         if (tag) {
             let finalTemplate = this.templates[tag.type.code];
             let tagArrayPointer = 1;
-            while(tagArrayPointer < tagArray.length) {
-                const nextTag = finalTemplate._members.find(member => member.name === tagArray[tagArrayPointer]);
+            while (finalTemplate && tagArrayPointer < tagArray.length) {
+                const memberName = String(tagArray[tagArrayPointer]).replace(/\[.*/, ""); //removes array indication
+                const nextTag = finalTemplate._members.find(member => member.name === memberName);
                 if(nextTag) {
                     finalTemplate = this.templates[nextTag.type.code];
                 } else {
