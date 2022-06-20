@@ -44,7 +44,7 @@ class extController extends EventEmitter{
 
   connect() {
     this.PLC = new Controller(this.conncom);
-
+    this.PLC.rpi = this.rpi;
     this.PLC.connect(this.ipAddress, this.slot).then(async () => {
       this.connected = true;
       this.emit('Connected');
