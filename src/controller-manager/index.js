@@ -1,6 +1,6 @@
+const net = require('net');
 const Controller = require('../controller');
 const { EventEmitter } = require('events');
-
 
 class ControllerManager extends EventEmitter {
   constructor() {
@@ -31,6 +31,7 @@ class ControllerManager extends EventEmitter {
 class extController extends EventEmitter{
   constructor(ipAddress, slot = 0, rpi = 100, connCom = true, retrySP = 3000, opts = {}) {
     super();
+    this.reconnect = true;
     this.ipAddress = ipAddress;
     this.slot = slot;
     this.opts = opts;
@@ -43,6 +44,7 @@ class extController extends EventEmitter{
   }
 
   connect() {
+    this.reconnect = true;
     this.PLC = new Controller(this.conncom);
     this.PLC.rpi = this.rpi;
     this.PLC.connect(this.ipAddress, this.slot).then(async () => {
@@ -79,8 +81,7 @@ class extController extends EventEmitter{
       this.connected = false;
       this.PLC.destroy();
       this.emit('Disconnected');
-      setTimeout(() => {this.connect()}, this.retryTimeSP)
-
+      if(this.reconnect) {setTimeout(() => {this.connect()}, this.retryTimeSP)};
     }
   }
   
@@ -98,6 +99,21 @@ class extController extends EventEmitter{
       tag: tag
     })
     return tag
+  }
+
+  disconnect() {
+    return new Promise((resolve, reject) => {
+      this.connected = false;
+      this.reconnect = false;
+      this.PLC.disconnect().then(() => {
+        this.emit('Disconnected');
+        resolve();
+      }).catch(() => {
+        net.Socket.prototype.destroy.call(this.PLC);
+        this.emit('Disconnected');
+        resolve();
+      })    
+    })
   }
 
 }
