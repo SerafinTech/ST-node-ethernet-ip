@@ -137,6 +137,20 @@ class TagList {
 
                     // Check For actual error (Skip too much data)
                     if (err && err.generalStatusCode !== 6) {
+                        
+                        const errData = {
+                            func: 'getControllerTags',
+                            instanceID: instanceID,
+                            program: program,
+                            cipReq: cipData,
+                        };
+
+                        if (Array.isArray(err.ext)) {
+                            err.ext.push(errData)
+                        } else {
+                            err.ext = [errData];
+                        }
+
                         reject(err);
                         return;
                     }
