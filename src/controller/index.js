@@ -34,6 +34,8 @@ class Controller extends ENIP {
                 path: null,
                 version: null,
                 status: null,
+                run: false,
+                program: false,
                 faulted: false,
                 minorRecoverableFault: false,
                 minorUnrecoverableFault: false,
@@ -442,7 +444,7 @@ class Controller extends ENIP {
         // Parse Returned Buffer
         this.state.controller.serial_number = data.readUInt32LE(10);
 
-        const nameBuf = Buffer.alloc(data.length - 15);
+        const nameBuf = Buffer.alloc(data.readUInt8(14));
         data.copy(nameBuf, 0, 15);
 
         this.state.controller.name = nameBuf.toString("utf8");
@@ -455,6 +457,8 @@ class Controller extends ENIP {
         this.state.controller.status = status;
 
         status &= 0x0ff0;
+        this.state.controller.run = (status & 0x00f0) === 0x0060 ? true : false;
+        this.state.controller.program = (status & 0x00f0) === 0x0070 ? true : false;
         this.state.controller.faulted = (status & 0x0f00) === 0 ? false : true;
         this.state.controller.minorRecoverableFault = (status & 0x0100) === 0 ? false : true;
         this.state.controller.minorUnrecoverableFault = (status & 0x0200) === 0 ? false : true;
