@@ -13,3 +13,6 @@
 
 # Ignore local test
 /src/maintest*
+
+# Test Scripts
+test*.js
