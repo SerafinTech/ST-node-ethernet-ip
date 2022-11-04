@@ -228,9 +228,15 @@ class TagList {
             for (const tag of this.tags) {
                 if (tag.type.structure && !this.templates[tag.type.code]) {
                     
-                    const template = new Template();
-                    await template.getTemplate(PLC, tag.type.code).catch(reject); 
-                    this.templates[tag.type.code] = template;                  
+                    let template = new Template();
+                    await template.getTemplate(PLC, tag.type.code).catch(e => {
+                        if (e.generalStatusCode == 5) {
+                            template = null
+                        } else {
+                            reject(e)
+                        }
+                    }); 
+                    if (template) this.templates[tag.type.code] = template;                  
                 }
             }
 
