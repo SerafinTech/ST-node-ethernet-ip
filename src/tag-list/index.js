@@ -233,7 +233,7 @@ class TagList {
                         if (e.generalStatusCode == 5) {
                             template = null
                         } else {
-                            reject()
+                            reject(e)
                         }
                     }); 
                     if (template) this.templates[tag.type.code] = template;                  
