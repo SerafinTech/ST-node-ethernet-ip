@@ -290,7 +290,11 @@ class Structure extends Tag {
                     }
                     break;
                 case BOOL:
-                    data.writeUInt8(data.readUInt8(member.offset) | (structValues[member.name] ? 1 : 0 << member.info));
+                    if (structValues[member.name]) {
+                        data.writeUInt8(data.readUInt8(member.offset) | 1<<member.info, member.offset)
+                    } else {
+                        data.writeUInt8(data.readUInt8(member.offset) & ~(1<<member.info), member.offset)
+                    }
                     break;
                 case STRUCT: {
                     const memberTemplate = this._taglist.templates[member.type.code];
