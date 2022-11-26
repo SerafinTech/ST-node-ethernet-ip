@@ -214,10 +214,12 @@ class TagList {
         return new Promise (async (resolve, reject) => {
             for (const tag of this.tags) {
                 if (tag.type.structure && !this.templates[tag.type.code]) {
-                    
-                    const template = new Template();
-                    await template.getTemplate(PLC, tag.type.code).catch(reject); 
-                    this.templates[tag.type.code] = template;                  
+
+                    try {
+                        const template = new Template();
+                        await template.getTemplate(PLC, tag.type.code).catch(reject);
+                        this.templates[tag.type.code] = template;
+                    } catch (e) { /* ignore template fetching errors */ }              
                 }
             }
 
