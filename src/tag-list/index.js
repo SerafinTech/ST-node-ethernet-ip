@@ -217,7 +217,7 @@ class TagList {
 
                     try {
                         const template = new Template();
-                        await template.getTemplate(PLC, tag.type.code).catch(reject);
+                        await template.getTemplate(PLC, tag.type.code);
                         this.templates[tag.type.code] = template;
                     } catch (e) { /* ignore template fetching errors */ }              
                 }
