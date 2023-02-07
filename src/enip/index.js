@@ -265,10 +265,19 @@ class ENIP extends Socket {
      */
     destroy(exception) {
         const { unregisterSession } = encapsulation;
-        this.write(unregisterSession(this.state.session.id), () => {
+        const unregisteredSession = unregisterSession(this.state.session.id);
+
+        const onClose = () => {
             this.state.session.established = false;
             super.destroy(exception);
-        });
+        };
+
+        // Only write to the socket if is not closed. 
+        if (exception && !exception.code === "EPIPE") {
+            this.write(unregisteredSession, onClose);    
+        } else {            
+            onClose();
+        }
     }
     // endregion
 
