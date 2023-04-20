@@ -201,7 +201,7 @@ class TagList {
     }
 
     getTemplateByTag(tagName, program = null) {
-
+        if (tagName.slice(-1) === "]") tagName = tagName.substr(0, tagName.lastIndexOf("["))
         const tagArray = tagName.split(".");
         const tag = this.tags.find(tag => tag.name.toLowerCase() === tagArray[0].toLowerCase() && String(tag.program).toLowerCase() === String(program).toLowerCase());
 
