@@ -392,10 +392,12 @@ class Controller extends ENIP {
      * @param {function} [cb=null] - Callback to be Passed to Parent.Write()
      * @memberof ENIP
      */
-    write_cip(data, timeout = 10, cb = null) {
+    write_cip(data, connected, timeout = 10, cb = null) {
         const { UnconnectedSend } = CIP;
         let msg;
-        const connected = super.established_conn;
+        if (!connected) {
+            connected = super.established_conn;
+        }
         if (connected === false) {
             msg = UnconnectedSend.build(data, this.state.controller.path, this.state.unconnectedSendTimeout);
         } else {
