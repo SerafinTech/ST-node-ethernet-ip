@@ -1,8 +1,8 @@
 const TCPController = require("../../tcp");
 const sna = require("./sna").SerialNumber;
 const EventEmitter = require("events");
-const InputMap = require("./inputmap")
-const OuputMap = require("./outputmap")
+const InputMap = require("./inputmap");
+const OuputMap = require("./outputmap");
 
 class Connection extends EventEmitter {
     constructor(port=2222, address, config, rpi=10) {
@@ -29,8 +29,8 @@ class Connection extends EventEmitter {
     
         this._connectTCP();
 
-        this.inputMap = new InputMap()
-        this.outputMap = new OuputMap()
+        this.inputMap = new InputMap();
+        this.outputMap = new OuputMap();
 
         setInterval(this._checkStatus.bind(this), 1000);
     }
@@ -118,34 +118,34 @@ class Connection extends EventEmitter {
     }
 
     addInputBit(byteOffset, bitOffset, name) {
-        this.inputMap.addBit(byteOffset, bitOffset, name)
+        this.inputMap.addBit(byteOffset, bitOffset, name);
     }
 
     addInputInt(byteOffset, name) {
-        this.inputMap.addInt(byteOffset, name)
+        this.inputMap.addInt(byteOffset, name);
     }
 
     addOutputBit(byteOffset, bitOffset, name) {
-        this.outputMap.addBit(byteOffset, bitOffset, name)
+        this.outputMap.addBit(byteOffset, bitOffset, name);
     }
 
     addOutputInt(byteOffset, name) {
-        this.outputMap.addInt(byteOffset, name)
+        this.outputMap.addInt(byteOffset, name);
     }
 
     listDataNames() {
         return {
             inputs: this.inputMap.mapping.map(map => map.name),
             outputs: this.outputMap.mapping.map(map => map.name)
-        }
+        };
     }
 
     getValue(name) {
-        return this.inputMap.getValue(name, this.inputData)
+        return this.inputMap.getValue(name, this.inputData);
     }
 
     setValue(name, value) {
-        this.outputData = this.outputMap.setValue(name, value, this.outputData)
+        this.outputData = this.outputMap.setValue(name, value, this.outputData);
     }
 
 }

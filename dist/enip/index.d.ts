@@ -144,10 +144,9 @@ export class ENIP extends Socket {
     /**
      * Socket.on('close',...) Event Handler
      *
-     * @param {Boolean} hadError
      * @memberof ENIP
      */
-    _handleCloseEvent(hadError: boolean): void;
+    _handleCloseEvent(): void;
 }
 import CIP = require("./cip");
 import encapsulation = require("./encapsulation");

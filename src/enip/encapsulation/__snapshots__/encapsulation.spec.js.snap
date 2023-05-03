@@ -141,6 +141,7 @@ Array [
       "data": Array [],
       "type": "Buffer",
     },
+    "length": 0,
   },
   Object {
     "TypeID": 178,
@@ -160,6 +161,7 @@ Array [
       ],
       "type": "Buffer",
     },
+    "length": 11,
   },
 ]
 `;
@@ -172,6 +174,7 @@ Array [
       "data": Array [],
       "type": "Buffer",
     },
+    "length": 0,
   },
   Object {
     "TypeID": 178,
@@ -191,6 +194,7 @@ Array [
       ],
       "type": "Buffer",
     },
+    "length": 11,
   },
   Object {
     "TypeID": 161,
@@ -213,6 +217,7 @@ Array [
       ],
       "type": "Buffer",
     },
+    "length": 14,
   },
 ]
 `;

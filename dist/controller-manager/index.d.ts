@@ -11,6 +11,7 @@ declare class extController extends EventEmitter {
     connect(): void;
     addTag(tagname: string, program?: string, arrayDims?: number, arraySize?: number): Tag;
     disconnect(): Promise<any>;
+    override on(eventName: "Connected" | "TagChanged" | "TagInit" | "Error" | "Disconnected", listener: (...args: any[]) => void): this;
 } 
 import { EventEmitter } from "events";
 import Tag = require("../tag");

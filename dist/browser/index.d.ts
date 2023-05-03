@@ -1,5 +1,6 @@
 /// <reference types="node" />
 export = Browser;
+
 declare class Browser extends EventEmitter {
     constructor(originatorPort?: number, originatorIPaddress?: string, autoBrowse?: boolean, updateRate?: number, disconnectMultiplier?: number);
     socket: dgram.Socket;
@@ -32,6 +33,7 @@ declare class Browser extends EventEmitter {
         state: any;
     };
     _addDevice(device: any): void;
+    override on(eventName: "Broadcast Request" | "Device Disconnected" | "Device List Updated" | "New Device", listener: (...args: any[]) => void): this;
 }
 import { EventEmitter } from "events";
 import dgram = require("dgram");

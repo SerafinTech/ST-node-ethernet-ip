@@ -34,6 +34,7 @@ declare class Connection extends EventEmitter {
     };
     getValue(name: any): any;
     setValue(name: any, value: any): void;
+    override on(eventName: "disconnected" | "connected" , listener: (...args: any[]) => void): this;
 }
 import EventEmitter = require("events");
 import TCPController = require("../../tcp");

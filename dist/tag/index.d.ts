@@ -240,6 +240,7 @@ declare class Tag extends EventEmitter {
      * @memberof Tag
      */
     unstageWriteRequest(): void;
+    override on(eventName: "Changed" | "Initialized" | "KeepAlive" | "New Device", listener: (...args: any[]) => void): this;
 }
 import { EventEmitter } from "events";
 //# sourceMappingURL=index.d.ts.map

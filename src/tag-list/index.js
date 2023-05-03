@@ -139,14 +139,14 @@ class TagList {
                     if (err && err.generalStatusCode !== 6) {
                         
                         const errData = {
-                            func: 'getControllerTags',
+                            func: "getControllerTags",
                             instanceID: instanceID,
                             program: program,
                             cipReq: cipData,
                         };
 
                         if (Array.isArray(err.ext)) {
-                            err.ext.push(errData)
+                            err.ext.push(errData);
                         } else {
                             err.ext = [errData];
                         }
@@ -201,7 +201,7 @@ class TagList {
     }
 
     getTemplateByTag(tagName, program = null) {
-        if (tagName.slice(-1) === "]") tagName = tagName.substr(0, tagName.lastIndexOf("["))
+        if (tagName.slice(-1) === "]") tagName = tagName.substr(0, tagName.lastIndexOf("["));
         const tagArray = tagName.split(".");
         const tag = this.tags.find(tag => tag.name.toLowerCase() === tagArray[0].toLowerCase() && String(tag.program).toLowerCase() === String(program).toLowerCase());
 
@@ -231,9 +231,9 @@ class TagList {
                     let template = new Template();
                     await template.getTemplate(PLC, tag.type.code).catch(e => {
                         if (e.generalStatusCode == 5) {
-                            template = null
+                            template = null;
                         } else {
-                            reject(e)
+                            reject(e);
                         }
                     }); 
                     if (template) this.templates[tag.type.code] = template;                  
