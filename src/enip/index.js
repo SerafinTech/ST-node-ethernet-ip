@@ -179,9 +179,9 @@ class ENIP extends Socket {
                     }
                 );
 
-                socket.on('error', err => {
+                socket.on("error", () => {
                     reject(new Error("SOCKET error"));
-                })
+                });
             }),
             timeoutSP,
             connectErr
@@ -366,10 +366,9 @@ class ENIP extends Socket {
     /**
      * Socket.on('close',...) Event Handler
      *
-     * @param {Boolean} hadError
      * @memberof ENIP
      */
-    _handleCloseEvent(hadError) {
+    _handleCloseEvent() {
         this.state.session.established = false;
         this.state.TCP.established = false;
     }

@@ -218,11 +218,11 @@ class Tag extends EventEmitter {
      */
     get value() {
         if (Array.isArray(this.state.tag.value)) {
-            let prevValue = [...this.state.tag.value]
+            let prevValue = [...this.state.tag.value];
             setTimeout(() => {
                 if (!equals(prevValue, this.state.tag.value))
                     this.state.tag.stage_write = true;
-            }, 0)
+            }, 0);
         }
         
         return this.state.tag.value;
@@ -249,7 +249,7 @@ class Tag extends EventEmitter {
      */
     set controller_value(newValue) {
         if (!equals(newValue,this.state.tag.controllerValue)) {
-            let lastValue = null
+            let lastValue = null;
             lastValue = this.state.tag.controllerValue;
             this.state.tag.controllerValue = newValue;
 
@@ -500,7 +500,7 @@ class Tag extends EventEmitter {
             case BOOL:
                 this.controller_value = !!data.readUInt8(2);
                 break;
-            case BIT_STRING:
+            case BIT_STRING: {
                 const array = [];
                 for (let b = 0; b < read_size; b++) {
                     for (let i = 0; i < 32; i++) {
@@ -509,6 +509,7 @@ class Tag extends EventEmitter {
                 }
                 this.controller_value = array;
                 break;
+            }
             case LINT:
                 if(typeof data.writeBigInt64LE !== "function") {
                     throw new Error("This version of Node.js does not support big integers. Upgrade to >= 12.0.0");
@@ -641,7 +642,7 @@ class Tag extends EventEmitter {
             case INT:
                 if (Array.isArray(value)) {
                     valBuf = Buffer.alloc(2 * value.length);
-                    for (var i = 0; i < value.length; i++) {
+                    for (let i = 0; i < value.length; i++) {
                         valBuf.writeInt16LE(value[i], i * 2);
                     }
                 } else {
@@ -653,7 +654,7 @@ class Tag extends EventEmitter {
             case DINT:
                 if (Array.isArray(value)) {
                     valBuf = Buffer.alloc(4 * value.length);
-                    for (var i = 0; i < value.length; i++) {
+                    for (let i = 0; i < value.length; i++) {
                         valBuf.writeUInt32LE(value[i], i * 4);
                     }
                 } else {
@@ -665,7 +666,7 @@ class Tag extends EventEmitter {
             case REAL:
                 if (Array.isArray(value)) {
                     valBuf = Buffer.alloc(4 * value.length);
-                    for (var i = 0; i < value.length; i++) {
+                    for (let i = 0; i < value.length; i++) {
                         valBuf.writeFloatLE(value[i], i * 4);
                     }
                 } else {
@@ -688,7 +689,7 @@ class Tag extends EventEmitter {
                 }
                 if (Array.isArray(value)) {
                     valBuf = Buffer.alloc(8 * value.length);
-                    for (var i = 0; i < value.length; i++) {
+                    for (let i = 0; i < value.length; i++) {
                         valBuf.writeBigInt64LE(value[i], i * 8);
                     }
                 } else {

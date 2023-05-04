@@ -4,7 +4,7 @@ describe("Connection Manager", () => {
     describe("Building", () => {
         it("Produces the Correct Output Buffer for ForwardOpen Request", () => {
             const { build_forwardOpen } = manager;
-            const test = build_forwardOpen(10000);
+            const test = build_forwardOpen(10000, undefined, undefined, undefined, undefined, 1234567);
             expect(test).toMatchSnapshot();
         });
         it("Produces the Correct Output Buffer for ForwardClose Request", () => {

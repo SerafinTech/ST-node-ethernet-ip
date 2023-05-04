@@ -111,7 +111,7 @@ class Template {
                 PLC.removeAllListeners("Get Attributes");
                 if (error) {
                     const errData = {
-                        func: '_getTemplateAttributes',
+                        func: "_getTemplateAttributes",
                         templateID: templateID,
                         cipReq: cipData,
                         attributes: this._attributes,
@@ -120,7 +120,7 @@ class Template {
                     };
 
                     if (Array.isArray(error.ext)) {
-                        error.ext.push(errData)
+                        error.ext.push(errData);
                     } else {
                         error.ext = [errData];
                     } 
@@ -152,7 +152,7 @@ class Template {
   
                         if (error && error.generalStatusCode !== 6) {
                             const errData = {
-                                func: '_getTemplate',
+                                func: "_getTemplate",
                                 offset: offset,
                                 getTempReqSize: getTempReqSize,
                                 cipReq: cipData,
@@ -162,7 +162,7 @@ class Template {
                             };
         
                             if (Array.isArray(error.ext)) {
-                                error.ext.push(errData)
+                                error.ext.push(errData);
                             } else {
                                 error.ext = [errData];
                             }
