@@ -49,7 +49,7 @@ class extController extends EventEmitter{
         this.PLC.rpi = this.rpi;
         this.PLC.connect(this.ipAddress, this.slot).then(async () => {
             this.connected = true;
-            this.emit("Connected");
+            this.emit("Connected", this);
             this.PLC.scan_rate = this.rpi;
       
             this.tags.forEach(tag => {
