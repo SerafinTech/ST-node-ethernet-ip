@@ -257,7 +257,7 @@ class Controller extends ENIP {
         // Create connection parameters
         const params = CIP.ConnectionManager.build_connectionParameters(owner["Exclusive"], connectionType["PointToPoint"],priority["Low"],fixedVar["Variable"],500);
         this.state.fwd_open_serial = getRandomInt(32767);
-        const forwardOpenData = CIP.ConnectionManager.build_forwardOpen(this.state.rpi * 1000, params, 1000 , 32, this.state.fwd_open_serial);
+        const forwardOpenData = CIP.ConnectionManager.build_forwardOpen(this.state.rpi * 3000, params, 1000 , 512, this.state.fwd_open_serial);
 
         // Build MR Path in order to send the message to the CPU
         const mrPath = Buffer.concat([
@@ -266,11 +266,11 @@ class Controller extends ENIP {
         ]);
 
         // Concatenate path to CPU and how to reach the message router
-        const portPath = Buffer.concat([
+        const portPath = Buffer.concat([ 
             this.state.controller.path,
             mrPath
         ]);
-
+            
         // This is the Connection Path data unit (Vol.1 Table 3-5.21)
         const connectionPath = Buffer.concat([
             Buffer.from([Math.ceil(portPath.length/2)]), //Path size in WORDS
@@ -716,7 +716,7 @@ class Controller extends ENIP {
             this.state.timeout_sp * 4,
             getTagListErr
         );   
-    }
+    }   
     // endregion
 
     // region Private Methods
@@ -792,7 +792,7 @@ class Controller extends ENIP {
      * @memberof Controller
      */
     async _readTagFragmented(tag, size = null) {
-
+        
         let offset = 0;
         let MR = tag.generateReadMessageRequestFrag(offset, size);
         this.write_cip(MR);
