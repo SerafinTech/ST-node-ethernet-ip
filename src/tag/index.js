@@ -413,7 +413,7 @@ class Tag extends EventEmitter {
      */
     parseReadMessageResponseValueForBitIndex(data) {
         const { tag } = this.state;
-        const { SINT, INT, DINT, BIT_STRING } = Types;
+        const { SINT, INT, DINT, BIT_STRING, UINT } = Types;
 
         // Read Tag Value
         /* eslint-disable indent */
@@ -421,6 +421,10 @@ class Tag extends EventEmitter {
             case SINT:
                 this.controller_value =
                     (data.readInt8(2) & (1 << tag.bitIndex)) == 0 ? false : true;
+                break;
+            case UINT:
+                this.controller_value =
+                    (data.readUInt16LE(2) & (1 << tag.bitIndex)) == 0 ? false : true;
                 break;
             case INT:
                 this.controller_value =
@@ -446,7 +450,7 @@ class Tag extends EventEmitter {
      * @memberof Tag
      */
     parseReadMessageResponseValueForAtomic(data) {
-        const { SINT, INT, DINT, REAL, BOOL, LINT, BIT_STRING } = Types;
+        const { SINT, INT, DINT, REAL, BOOL, LINT, BIT_STRING, UINT } = Types;
 
         const { read_size } = this.state;
 
@@ -462,6 +466,17 @@ class Tag extends EventEmitter {
                     this.controller_value = array;
                 } else {
                     this.controller_value = data.readInt8(2);
+                }
+                break;
+            case UINT:
+                if (data.length > 4) {
+                    const array = [];
+                    for (let i = 0; i < (data.length - 2) / 2; i++) {
+                        array.push(data.readUInt16LE(i * 2 + 2));
+                    }
+                    this.controller_value = array;
+                } else {
+                    this.controller_value = data.readUInt16LE(2);
                 }
                 break;
             case INT:
