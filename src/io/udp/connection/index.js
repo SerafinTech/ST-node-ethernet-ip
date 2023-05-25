@@ -31,6 +31,7 @@ class Connection extends EventEmitter {
 
         this.inputMap = new InputMap();
         this.outputMap = new OuputMap();
+        this.run = true;
 
         setInterval(this._checkStatus.bind(this), 1000);
     }
@@ -63,7 +64,7 @@ class Connection extends EventEmitter {
     send(socket) {
         this.OTsequenceNum ++;
         if (this.OTsequenceNum > 0xFFFFFFFF) this.OTsequenceNum = 0;
-        socket.send(this.generateDataMessage(), this.port, this.address);
+        if (this.run) socket.send(this.generateDataMessage(), this.port, this.address);
     }
 
     parseData(data, socket) {
@@ -106,7 +107,7 @@ class Connection extends EventEmitter {
                 this.emit("disconnected", null);
                 this.TOid = 0;
             }
-            if (!this.tcpController.state.TCP.establishing && this.connected) setTimeout(() => this._connectTCP(), this.rpi * 20);
+            if (!this.tcpController.state.TCP.establishing && this.connected && this.run) setTimeout(() => this._connectTCP(), this.rpi * 20);
             this.connected = false;
       
         } else {
