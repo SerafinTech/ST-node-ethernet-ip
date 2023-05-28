@@ -21,10 +21,10 @@ class Structure extends Tag {
         } else {
             if (super.value) {
                 if (this._valueObj) {
-                    return this._valueObj
+                    return this._valueObj;
                 } else {
                     this._valueObj = this.parseValue(super.value);
-                    return this._valueObj
+                    return this._valueObj;
                 }               
             } else {
                 return null;
@@ -34,7 +34,7 @@ class Structure extends Tag {
 
     parseValue (data) {
         if (this.state.tag.arrayDims > 0) {
-            return this._parseReadDataArray(data)
+            return this._parseReadDataArray(data);
         } else {
             return this._parseReadData(data, this._template);
         }
@@ -214,9 +214,9 @@ class Structure extends Tag {
     _parseReadDataArray(data) {
         let array = [];
         for (let i = 0; i < data.length; i+=this._template._attributes.StructureSize) {
-            array.push(this._parseReadData(data.slice(i),this._template))
+            array.push(this._parseReadData(data.slice(i),this._template));
         }
-        return array
+        return array;
     }
 
     _parseWriteData (structValues, template) {
@@ -290,7 +290,11 @@ class Structure extends Tag {
                     }
                     break;
                 case BOOL:
-                    data.writeUInt8(data.readUInt8(member.offset) | (structValues[member.name] ? 1 : 0 << member.info));
+                    if (structValues[member.name]) {
+                        data.writeUInt8(data.readUInt8(member.offset) | 1<<member.info, member.offset);
+                    } else {
+                        data.writeUInt8(data.readUInt8(member.offset) & ~(1<<member.info), member.offset);
+                    }
                     break;
                 case STRUCT: {
                     const memberTemplate = this._taglist.templates[member.type.code];
@@ -321,13 +325,13 @@ class Structure extends Tag {
     }
 
     _parseWriteDataArray (newValue) {
-        let buf = Buffer.alloc(0)
+        let buf = Buffer.alloc(0);
 
         newValue.forEach(value => {
-            buf = Buffer.concat([buf, this._parseWriteData(value, this._template)])
-        })
+            buf = Buffer.concat([buf, this._parseWriteData(value, this._template)]);
+        });
         
-        return buf
+        return buf;
     }
     
     get controller_value() {
@@ -336,7 +340,7 @@ class Structure extends Tag {
 
     set controller_value(newValue) {
         if (!equals(newValue, this.state.tag.controllerValue)) {
-            let lastValue = null
+            let lastValue = null;
             if(this.state.tag.controllerValue !== null) 
                 lastValue = Buffer.from(this.state.tag.controllerValue);
                    

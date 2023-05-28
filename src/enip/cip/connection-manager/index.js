@@ -116,7 +116,7 @@ const generateEncodedTimeout = timeout => {
  * @param {number} [serialOrig=0x1337] - Originator Serial Number (SerNo of the PLC)
  * @returns {Buffer} data portion of the forwardOpen packet
  */
-const build_forwardOpen = (otRPI = 8000, netConnParams = 0x43f4, timeOutMs = 1000 , timeOutMult = 32, connectionSerial = 0x4242) => {
+const build_forwardOpen = (otRPI = 8000, netConnParams = 0x43f4, timeOutMs = 1000 , timeOutMult = 32, connectionSerial = 0x4242, TOconnectionID = getRandomInt(2147483647)) => {
     if (timeOutMs <= 900 || typeof timeOutMs !== "number") throw new Error("Timeouts Must be Positive Integers and above 500");
     if (!(timeOutMult in timeOutMultiplier) || typeof timeOutMult !== "number") throw new Error("Timeout Multiplier must be a number and a multiple of 4");
     if (otRPI < 8000 || typeof otRPI !== "number") throw new Error("otRPI should be at least 8000 (8ms)");
@@ -132,7 +132,7 @@ const build_forwardOpen = (otRPI = 8000, netConnParams = 0x43f4, timeOutMs = 100
     ptr+=1;
     connectionParams.writeUInt32LE(0,ptr); // O->T Connection ID
     ptr+=4;
-    connectionParams.writeUInt32LE(getRandomInt(2147483647),ptr); // T->O Connection ID
+    connectionParams.writeUInt32LE(TOconnectionID,ptr); // T->O Connection ID
     ptr+=4;
     connectionParams.writeUInt16LE(connectionSerial,ptr); // Connection Serial Number TODO: Make this unique
     ptr+=2;

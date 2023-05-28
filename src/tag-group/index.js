@@ -29,7 +29,7 @@ class TagGroup extends EventEmitter {
      * @memberof TagGroup
      */
     get length() {
-        return Object.keys(this.tags).length;
+        return Object.keys(this.state.tags).length;
     }
     // endregion
 

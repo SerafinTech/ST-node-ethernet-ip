@@ -109,7 +109,24 @@ class Template {
 
             PLC.on("Get Attributes", (error, data) => {
                 PLC.removeAllListeners("Get Attributes");
-                if (error) { reject(error); return; }
+                if (error) {
+                    const errData = {
+                        func: "_getTemplateAttributes",
+                        templateID: templateID,
+                        cipReq: cipData,
+                        attributes: this._attributes,
+                        members: this._members,
+                        name: this._name
+                    };
+
+                    if (Array.isArray(error.ext)) {
+                        error.ext.push(errData);
+                    } else {
+                        error.ext = [errData];
+                    } 
+
+                    reject(error); return; 
+                }
 
                 this._parseReadTemplateAttributes(data);
                 resolve();
@@ -134,6 +151,22 @@ class Template {
                         PLC.removeAllListeners("Read Tag");
   
                         if (error && error.generalStatusCode !== 6) {
+                            const errData = {
+                                func: "_getTemplate",
+                                offset: offset,
+                                getTempReqSize: getTempReqSize,
+                                cipReq: cipData,
+                                attributes: this._attributes,
+                                members: this._members,
+                                name: this._name
+                            };
+        
+                            if (Array.isArray(error.ext)) {
+                                error.ext.push(errData);
+                            } else {
+                                error.ext = [errData];
+                            }
+
                             rej(error);
                             return;
                         }

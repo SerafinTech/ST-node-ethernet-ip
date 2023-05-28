@@ -10,6 +10,8 @@ Object {
   "minorUnrecoverableFault": false,
   "name": null,
   "path": null,
+  "program": false,
+  "run": false,
   "serial_number": null,
   "slot": null,
   "status": null,

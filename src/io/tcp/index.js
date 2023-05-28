@@ -1,9 +1,9 @@
 const { ENIP, CIP } = require("../../enip");
 const dateFormat = require("dateformat");
 const TagGroup = require("../../tag-group");
-const { delay, promiseTimeout } = require("../../utilities");
+const { promiseTimeout } = require("../../utilities");
 const Queue = require("task-easy");
-const config = require("../../config");
+
 
 const compare = (obj1, obj2) => {
     if (obj1.priority > obj2.priority) return true;
@@ -198,7 +198,7 @@ class Controller extends ENIP {
             throw new Error("Invalid slot parameter type, must be either a number or a Buffer");
         }
 
-        const sessid = await super.connect(IP_ADDR, this.timeout_sp);   
+        await super.connect(IP_ADDR, this.timeout_sp);   
         
         this._initializeControllerEventHandlers(); // Connect sendRRData Event
         
@@ -257,11 +257,7 @@ class Controller extends ENIP {
         this.state.fwd_open_serial = getRandomInt(32767);
         const forwardOpenData = CIP.ConnectionManager.build_forwardOpen(this.state.rpi * 1000, paramsOT, 1000 , 32, this.state.fwd_open_serial);
 
-        // Build MR Path in order to send the message to the CPU
-        const mrPath = Buffer.concat([
-            LOGICAL.build(LOGICAL.types.ClassID, 0x02), // Message Router Object (0x02)
-            LOGICAL.build(LOGICAL.types.InstanceID, 0x01) // Instance ID (0x01)
-        ]);
+    
 
         const ioPath = this._ioPath();
         

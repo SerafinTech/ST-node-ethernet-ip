@@ -137,6 +137,20 @@ class TagList {
 
                     // Check For actual error (Skip too much data)
                     if (err && err.generalStatusCode !== 6) {
+                        
+                        const errData = {
+                            func: "getControllerTags",
+                            instanceID: instanceID,
+                            program: program,
+                            cipReq: cipData,
+                        };
+
+                        if (Array.isArray(err.ext)) {
+                            err.ext.push(errData);
+                        } else {
+                            err.ext = [errData];
+                        }
+
                         reject(err);
                         return;
                     }
@@ -186,8 +200,7 @@ class TagList {
         return this.tags.find(tag => tag.name === tagName && tag.program === program);
     }
 
-    getTemplateByTag(tagName, program = null) {
-
+    getTemplateByTag(tagName, program = null) {        
         const tagArray = tagName.split(".");
         const tag = this.tags.find(tag => tag.name.toLowerCase().replace(/\[.*/, "") === tagArray[0].toLowerCase().replace(/\[.*/, "") && String(tag.program).toLowerCase() === String(program).toLowerCase());
 
@@ -220,6 +233,7 @@ class TagList {
                         await template.getTemplate(PLC, tag.type.code);
                         this.templates[tag.type.code] = template;
                     } catch (e) { /* ignore template fetching errors */ }              
+
                 }
             }
 

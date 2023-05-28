@@ -3,7 +3,7 @@ const dateFormat = require("dateformat");
 const TagGroup = require("../tag-group");
 const { delay, promiseTimeout } = require("../utilities");
 const TagList = require("../tag-list");
-const {Structure} = require("../structure")
+const {Structure} = require("../structure");
 const Queue = require("task-easy");
 const Tag = require("../tag");
 
@@ -34,6 +34,8 @@ class Controller extends ENIP {
                 path: null,
                 version: null,
                 status: null,
+                run: false,
+                program: false,
                 faulted: false,
                 minorRecoverableFault: false,
                 minorUnrecoverableFault: false,
@@ -211,7 +213,7 @@ class Controller extends ENIP {
         // Fetch Controller Properties and Wall Clock
         await this.readControllerProps();
 
-        await this.getControllerTagList(this.state.tagList)
+        await this.getControllerTagList(this.state.tagList);
     }
 
     /**
@@ -396,10 +398,12 @@ class Controller extends ENIP {
      * @param {function} [cb=null] - Callback to be Passed to Parent.Write()
      * @memberof ENIP
      */
-    write_cip(data, timeout = 10, cb = null) {
+    write_cip(data, connected, timeout = 10, cb = null) {
         const { UnconnectedSend } = CIP;
         let msg;
-        const connected = super.established_conn;
+        if (!connected) {
+            connected = super.established_conn;
+        }
         if (connected === false) {
             msg = UnconnectedSend.build(data, this.state.controller.path, this.state.unconnectedSendTimeout);
         } else {
@@ -448,7 +452,7 @@ class Controller extends ENIP {
         // Parse Returned Buffer
         this.state.controller.serial_number = data.readUInt32LE(10);
 
-        const nameBuf = Buffer.alloc(data.length - 15);
+        const nameBuf = Buffer.alloc(data.readUInt8(14));
         data.copy(nameBuf, 0, 15);
 
         this.state.controller.name = nameBuf.toString("utf8");
@@ -461,6 +465,8 @@ class Controller extends ENIP {
         this.state.controller.status = status;
 
         status &= 0x0ff0;
+        this.state.controller.run = (status & 0x00f0) === 0x0060 ? true : false;
+        this.state.controller.program = (status & 0x00f0) === 0x0070 ? true : false;
         this.state.controller.faulted = (status & 0x0f00) === 0 ? false : true;
         this.state.controller.minorRecoverableFault = (status & 0x0100) === 0 ? false : true;
         this.state.controller.minorUnrecoverableFault = (status & 0x0200) === 0 ? false : true;
@@ -611,7 +617,7 @@ class Controller extends ENIP {
      * @memberof Controller
      */
     writeTag(tag, value = null, size = 0x01) {
-        if(tag.writeObjToValue) { tag.writeObjToValue() }
+        if(tag.writeObjToValue) { tag.writeObjToValue(); }
         return this.workers.write.schedule(this._writeTag.bind(this), [tag, value, size], {
             priority: 1,
             timestamp: new Date()
@@ -671,7 +677,7 @@ class Controller extends ENIP {
                     timestamp: new Date()
                 })
                 .catch(e => {
-                    return Promise.reject(e)
+                    return Promise.reject(e);
                 });
 
             await this.workers.group
@@ -680,13 +686,13 @@ class Controller extends ENIP {
                     timestamp: new Date()
                 })
                 .catch(e => {
-                    return Promise.reject(e)
+                    return Promise.reject(e);
                 });
 
             await delay(this.state.scan_rate);
         }
 
-        return Promise.resolve()
+        return Promise.resolve();
     }
 
     /**
@@ -766,7 +772,7 @@ class Controller extends ENIP {
 
                     if(err && err.generalStatusCode === 255 && err.extendedStatus.toString() === [8453].toString()) {
                         tag.state.read_size--;
-                        this._readTag(tag).catch(reject)
+                        this._readTag(tag).catch(reject);
                     } else if (err && err.generalStatusCode === 6) {
                         await this._readTagFragmented(tag, size).catch(reject);
                         resolve(null);
@@ -846,7 +852,7 @@ class Controller extends ENIP {
      * @memberof Controller
      */
     async _writeTag(tag, value = null, size = 0x01) {
-        if (tag.state.tag.value.length > 480)
+        if (tag.state.tag.value.length > (480 - tag.path.length))
             return this._writeTagFragmented(tag, value, size);
 
         const MR = tag.generateWriteMessageRequest(value, size);
@@ -894,8 +900,9 @@ class Controller extends ENIP {
      * @memberof Controller
      */
     async _writeTagFragmented(tag, value = null, size = 0x01) {
+        if(value) tag.value = value;
         let offset = 0;
-        const maxPacket = 470;
+        const maxPacket = 480 - tag.path.length;
         let valueFragment = tag.state.tag.value.slice(offset, maxPacket);
         let MR = tag.generateWriteMessageRequestFrag(offset, valueFragment, size);
 
@@ -1305,44 +1312,42 @@ class Controller extends ENIP {
 
 
     get tagList() {
-        return this.state.tagList.tags.filter(tag => (!tag.type.reserved))
+        return this.state.tagList.tags.filter(tag => (!tag.type.reserved));
     }
 
     get templateList() {
-        return this.state.tagList.templates
+        return this.state.tagList.templates;
     }
 
     async getTagArraySize(tag) {
         let i = 1;
-        while (true) {
-            tag.state.read_size = i
-            await this.readTag(tag) 
-            if (tag.state.read_size !== i) 
-                break;
-            i++
+        do {
+            tag.state.read_size = i;
+            await this.readTag(tag); 
+            i++;
         }
-
-        return tag.state.read_size
+        while (tag.state.read_size !== (i-1));
+        return tag.state.read_size;
     }
 
     newTag(tagname, program = null, subscribe = true, arrayDims = 0, arraySize = 0x01) {
         let template = this.state.tagList.getTemplateByTag(tagname, program); 
-        let tag = null
+        let tag = null;
         if (template) {
-            tag = new Structure(tagname, this.state.tagList, program, null, 0, arrayDims, arraySize)
+            tag = new Structure(tagname, this.state.tagList, program, null, 0, arrayDims, arraySize);
             if (subscribe)
-                this.subscribe(tag)
-            return tag
+                this.subscribe(tag);
+            return tag;
         } else {
-            tag = new Tag(tagname, program, null, 0, arrayDims, arraySize)
+            tag = new Tag(tagname, program, null, 0, arrayDims, arraySize);
             if (subscribe)
-                this.subscribe(tag)
-            return tag
+                this.subscribe(tag);
+            return tag;
         }
     }
 
     getTagByName(name) {
-        return Object.values(this.state.subs.state.tags).find(({state}) => state.tag.name === name) 
+        return Object.values(this.state.subs.state.tags).find(({state}) => state.tag.name === name); 
     }
 }
 
