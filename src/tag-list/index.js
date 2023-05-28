@@ -200,24 +200,16 @@ class TagList {
         return this.tags.find(tag => tag.name === tagName && tag.program === program);
     }
 
-    getTemplateByTag(tagName, program = null) {
-        let tagArray = tagName.split(".");
-        
-        tagArray = tagArray.map(tagArrayItem => {
-            if (tagArrayItem.slice(-1) === "]")  {
-                return tagArrayItem.substr(0, tagArrayItem.lastIndexOf("["));
-            } else {
-                return tagArrayItem
-            }
-        })
-
-        const tag = this.tags.find(tag => tag.name.toLowerCase() === tagArray[0].toLowerCase() && String(tag.program).toLowerCase() === String(program).toLowerCase());
+    getTemplateByTag(tagName, program = null) {        
+        const tagArray = tagName.split(".");
+        const tag = this.tags.find(tag => tag.name.toLowerCase().replace(/\[.*/, "") === tagArray[0].toLowerCase().replace(/\[.*/, "") && String(tag.program).toLowerCase() === String(program).toLowerCase());
 
         if (tag) {
             let finalTemplate = this.templates[tag.type.code];
             let tagArrayPointer = 1;
-            while(tagArrayPointer < tagArray.length) {
-                const nextTag = finalTemplate._members.find(member => member.name === tagArray[tagArrayPointer]);
+            while (finalTemplate && tagArrayPointer < tagArray.length) {
+                const memberName = String(tagArray[tagArrayPointer]).replace(/\[.*/, ""); //removes array indication
+                const nextTag = finalTemplate._members.find(member => member.name === memberName);
                 if(nextTag) {
                     finalTemplate = this.templates[nextTag.type.code];
                 } else {
@@ -235,16 +227,13 @@ class TagList {
         return new Promise (async (resolve, reject) => {
             for (const tag of this.tags) {
                 if (tag.type.structure && !this.templates[tag.type.code]) {
-                    
-                    let template = new Template();
-                    await template.getTemplate(PLC, tag.type.code).catch(e => {
-                        if (e.generalStatusCode == 5) {
-                            template = null;
-                        } else {
-                            reject(e);
-                        }
-                    }); 
-                    if (template) this.templates[tag.type.code] = template;                  
+
+                    try {
+                        const template = new Template();
+                        await template.getTemplate(PLC, tag.type.code);
+                        this.templates[tag.type.code] = template;
+                    } catch (e) { /* ignore template fetching errors */ }              
+
                 }
             }
 
