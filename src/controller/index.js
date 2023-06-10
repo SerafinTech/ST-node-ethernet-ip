@@ -187,7 +187,7 @@ class Controller extends ENIP {
      * @returns {Promise}
      * @memberof ENIP
      */
-    async connect(IP_ADDR, SLOT = 0) {
+    async connect(IP_ADDR, SLOT = 0, SETUP = true) {
         const { PORT } = CIP.EPATH.segments;
         const BACKPLANE = 1;
 
@@ -210,10 +210,132 @@ class Controller extends ENIP {
             if(!connid) throw new Error("Failed to Establish Forward Open Connection with Controller");
         }
 
-        // Fetch Controller Properties and Wall Clock
-        await this.readControllerProps();
+        if (SETUP) { 
+            await this.readControllerProps();
+            await this.getControllerTagList(this.state.tagList);
+        }
+    }
 
-        await this.getControllerTagList(this.state.tagList);
+    /**
+     * Run a GET_ATTRIBUTE_SINGLE on any class, instance, attribute.
+     * For attribute of a class set instance to 0x00.
+     * 
+     * @param {number} classID 
+     * @param {number} instance 
+     * @param {number} attribute 
+     * @returns {Buffer}
+     * @memberof Controller
+     */
+    async getAttributeSingle(classID, instance, attribute) {
+        const { GET_ATTRIBUTE_SINGLE } = CIP.MessageRouter.services;
+        const { LOGICAL } = CIP.EPATH.segments;
+       
+        const identityPath = Buffer.concat([
+            LOGICAL.build(LOGICAL.types.ClassID, classID), 
+            LOGICAL.build(LOGICAL.types.InstanceID, instance), 
+            LOGICAL.build(LOGICAL.types.AttributeID, attribute) 
+        ]);
+
+        const MR = CIP.MessageRouter.build(GET_ATTRIBUTE_SINGLE, identityPath, []);
+
+        super.write_cip(MR, super.established_conn);
+
+        const readPropsErr = new Error("TIMEOUT occurred while reading Param.");
+
+        // Wait for Response
+        const data = await promiseTimeout(
+            new Promise((resolve, reject) => {
+                this.on("Get Attribute Single", (err, data) => {
+                    if (err) reject(err);
+                    resolve(data);
+                });
+            }),
+            this.state.timeout_sp,
+            readPropsErr
+        );
+        this.removeAllListeners("Get Attribute Single");
+        return data
+    }
+
+    /**
+     * Run a SET_ATTRIBUTE_SINGLE on any class, instance, attribute. You have to know the size of the buffer 
+     * of the data you are setting attribute to.  For attribute of a class set instance to 0x00.
+     * 
+     * @param {number} classID 
+     * @param {number} instance 
+     * @param {number} attribute 
+     * @param {buffer} newValue
+     * @returns {Buffer}
+     * @memberof Controller
+     */
+    async setAttributeSingle(classID, instance, attribute, newValue) {
+        const { SET_ATTRIBUTE_SINGLE } = CIP.MessageRouter.services;
+        const { LOGICAL } = CIP.EPATH.segments;
+
+        const identityPath = Buffer.concat([
+            LOGICAL.build(LOGICAL.types.ClassID, classID), 
+            LOGICAL.build(LOGICAL.types.InstanceID, instance), 
+            LOGICAL.build(LOGICAL.types.AttributeID, attribute) 
+        ]);
+
+        const MR = CIP.MessageRouter.build(SET_ATTRIBUTE_SINGLE, identityPath, newValue);
+
+        super.write_cip(MR, super.established_conn);
+
+        const readPropsErr = new Error("TIMEOUT occurred while setting Param.");
+
+        // Wait for Response
+        const data = await promiseTimeout(
+            new Promise((resolve, reject) => {
+                this.on("Set Attribute Single", (err, data) => {
+                    if (err) reject(err);
+                    resolve(data);
+                });
+            }),
+            this.state.timeout_sp,
+            readPropsErr
+        );
+        this.removeAllListeners("Set Attribute Single");
+        return data
+    }
+
+    /**
+     * Gets file data block used for retrieving eds file from some devices
+     * 
+     * @param {number} classID 
+     * @param {number} instance 
+     * @param {number} blockNum 
+     * @returns {Buffer}
+     * @memberof Controller
+     */
+    async getFileData(classID, instance, blockNum) {
+        const { GET_FILE_DATA } = CIP.MessageRouter.services;
+        const { LOGICAL } = CIP.EPATH.segments;
+
+        const identityPath = Buffer.concat([
+            LOGICAL.build(LOGICAL.types.ClassID, classID), 
+            LOGICAL.build(LOGICAL.types.InstanceID, instance), 
+        ]);
+
+        const MR = CIP.MessageRouter.build(GET_FILE_DATA, identityPath, Buffer.from([blockNum]));
+
+        super.write_cip(MR, super.established_conn);
+
+        const readPropsErr = new Error("TIMEOUT occurred while getting file data.");
+
+        // Wait for Response
+        const data = await promiseTimeout(
+            new Promise((resolve, reject) => {
+                this.on("Get File Data", (err, data) => {
+                    if (err) reject(err);
+                    resolve(data);
+                });
+            }),
+            this.state.timeout_sp,
+            readPropsErr
+        );
+        this.removeAllListeners("Get File Data");
+        return data
     }
 
     /**
@@ -1065,7 +1187,8 @@ class Controller extends ENIP {
             READ_MODIFY_WRITE_TAG,
             MULTIPLE_SERVICE_PACKET,
             FORWARD_OPEN,
-            FORWARD_CLOSE
+            FORWARD_CLOSE,
+            GET_FILE_DATA
         } = CIP.MessageRouter.services;
 
         let error = generalStatusCode !== 0 ? { generalStatusCode, extendedStatus } : null;
@@ -1073,6 +1196,9 @@ class Controller extends ENIP {
         // Route Incoming Message Responses
         /* eslint-disable indent */
         switch (service - 0x80) {
+            case GET_FILE_DATA:
+                this.emit("Get File Data", error, data);
+                break;
             case FORWARD_CLOSE:
                 this.emit("Forward Close", error, data);
                 this.emit("Read Modify Write Tag", error, data);
@@ -1194,8 +1320,8 @@ class Controller extends ENIP {
             READ_MODIFY_WRITE_TAG,
             MULTIPLE_SERVICE_PACKET,
             FORWARD_OPEN,
-            FORWARD_CLOSE
-
+            FORWARD_CLOSE,
+            GET_FILE_DATA
         } = CIP.MessageRouter.services;
 
         let error = generalStatusCode !== 0 ? { generalStatusCode, extendedStatus } : null;
@@ -1203,6 +1329,9 @@ class Controller extends ENIP {
         // Route Incoming Message Responses
         /* eslint-disable indent */
         switch (service - 0x80) {
+            case GET_FILE_DATA:
+                this.emit("Get File Data", error, data);
+                break;
             case FORWARD_CLOSE:
                 this.emit("Forward Close", error, data);
                 this.emit("Read Modify Write Tag", error, data);

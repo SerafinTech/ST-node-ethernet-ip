@@ -35,7 +35,7 @@ const build = (type, address, padded = true) => {
     if (!validateLogicalType(type))
         throw new Error("Invalid Logical Type Code Passed to Segment Builder");
 
-    if (typeof address !== "number" || address <= 0)
+    if (typeof address !== "number" || address < 0)
         throw new Error("Passed Address Must be a Positive Integer");
 
     let buf = null; // Initialize Output Buffer

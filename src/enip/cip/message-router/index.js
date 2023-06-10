@@ -3,6 +3,7 @@ const services = {
     GET_ATTRIBUTES: 0x03,
     GET_ATTRIBUTE_ALL: 0x01,
     GET_ATTRIBUTE_SINGLE: 0x0e,
+    GET_ENUM_STRING: 0x4b,
     RESET: 0x05,
     START: 0x06,
     STOP: 0x07,
@@ -18,7 +19,8 @@ const services = {
     WRITE_TAG_FRAGMENTED: 0x53,
     READ_MODIFY_WRITE_TAG: 0x4e,
     FORWARD_OPEN: 0x54,
-    FORWARD_CLOSE: 0x4E
+    FORWARD_CLOSE: 0x4E,
+    GET_FILE_DATA: 0x4f
 };
 
 /**
