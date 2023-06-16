@@ -1,10 +1,10 @@
 {
-    "include": ["src/**/*"],
-    "compilerOptions": {
-      "allowJs": true,
-      "declaration": true,
-      "emitDeclarationOnly": true,
-      "outDir": "dist",
-      "declarationMap": true
-    }
+  "include": ["src/**/*"],
+  "compilerOptions": {
+    "lib": ["es2020"],
+    "module": "commonjs",
+    "target": "es2019",
+    "allowJs": true,
+    "outDir": "./built"
   }
+}

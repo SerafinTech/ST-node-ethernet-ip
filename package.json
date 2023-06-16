@@ -2,7 +2,7 @@
     "name": "st-ethernet-ip",
     "version": "2.6.1",
     "description": "A simple node interface for Ethernet/IP.",
-    "main": "./src/index.js",
+    "main": "./built/index.js",
     "scripts": {
         "test": "npm run lint && jest && npm run test:coverage && cat ./coverage/lcov.info | ./node_modules/coveralls/bin/coveralls.js",
         "test:local": "npm run lint && jest && npm run test:coverage",
@@ -34,12 +34,13 @@
         "task-easy": "^0.2.0"
     },
     "devDependencies": {
-        "@types/node": "^18.16.3",
+        "@types/node": "^18.16.18",
         "colors": "^1.3.2",
         "coveralls": "^3.0.2",
         "eslint": "^4.19.1",
         "eslint-plugin-jest": "^21.22.0",
-        "jest": "^23.6.0"
+        "jest": "^23.6.0",
+        "typescript": "^5.1.3"
     },
     "author": "Jason Serafin",
     "license": "MIT",
