@@ -1,13 +1,28 @@
-const { CIP } = require("../enip");
+import { CIP } from "../enip";
 const { MessageRouter } = CIP;
 const { WRITE_TAG, WRITE_TAG_FRAGMENTED } = MessageRouter.services;
-const Tag = require("../tag");
-const Template = require("./template");
-const {bufferToString, stringToBuffer} = require("../utilities");
-const equals = require("deep-equal");
+import Tag from "../tag";
+import Template from "./template";
+import { bufferToString, stringToBuffer } from "../utilities";
+import equals from "deep-equal";
+import type TagList from '../tag-list'
 
 class Structure extends Tag {
-    constructor (tagname, taglist, program = null, datatype = null, keepAlive = 0, arrayDims = 0, arraySize = 0x01) {
+    _valueObj: any;
+    _taglist: any;
+    _template: Template;
+    /**
+     * Structure Class to handle structure tags
+     * 
+     * @param tagname - Tagname
+     * @param taglist - Tag list of PLC. Needs to be retrieved first.
+     * @param program - Program name. Leave undefined for Controller scope
+     * @param datatype - Data type code if it needs to be explicitly defined (Not commonly used)
+     * @param keepAlive - Time interval in mS to set stage_write to true to keep connection alive.  0 = disabled.
+     * @param arrayDims - Dimensions of an array tag
+     * @param arraySize - Size of array
+     */
+    constructor (tagname: string, taglist: TagList, program: string = null, datatype: number = null, keepAlive: number = 0, arrayDims: number = 0, arraySize: number = 0x01) {
         super(tagname, program, datatype, keepAlive, arrayDims, arraySize);
         this._valueObj = null;
         this._taglist = taglist;
@@ -15,7 +30,10 @@ class Structure extends Tag {
         if (this._template) super.type = CIP.DataTypes.Types.STRUCT;
     }
 
-    get value () {
+    /**
+     * Gets structure tag value as an object containing all members 
+     */
+    get value (): any {
         if (!this._template) {
             return super.value;
         } else {
@@ -32,7 +50,13 @@ class Structure extends Tag {
         }
     }
 
-    parseValue (data) {
+    /**
+     * Parses either single or array of structures
+     * 
+     * @param data - tag value as a data buffer
+     * @returns tag value as an object containing all members
+     */
+    parseValue (data: Buffer): any {
         if (this.state.tag.arrayDims > 0) {
             return this._parseReadDataArray(data);
         } else {
@@ -41,7 +65,10 @@ class Structure extends Tag {
         
     }
 
-    set value (newValue) {
+    /**
+     * Sets structure tag value as an object containing all members 
+     */
+    set value (newValue: any) {
         if (!this._template) {
             super.value = newValue;
         } else {
@@ -55,7 +82,10 @@ class Structure extends Tag {
         }
     }
 
-    writeObjToValue() {
+    /**
+     * Write current value as object to value as buffer
+     */
+    writeObjToValue(): void {
         if (this.state.tag.arrayDims > 0) {
             super.value = this._parseWriteDataArray(this._valueObj);
         } else {
@@ -63,11 +93,18 @@ class Structure extends Tag {
         }             
     }
 
-    generateWriteMessageRequest(value = null, size = 0x01) {
+    /**
+     * Generates write message to write current structure value to PLC
+     * 
+     * @param value 
+     * @param size 
+     * @returns Write message request
+     */
+    generateWriteMessageRequest(value = null, size: number = 0x01): Buffer {
         const { STRUCT } = CIP.DataTypes.Types;
         
         if(!this._template) {
-            return super.generateReadMessageRequest(value, size);
+            return super.generateWriteMessageRequest(value, size);
         } else {
             const { tag } = this.state;
             const buf = Buffer.alloc(6);
@@ -83,7 +120,15 @@ class Structure extends Tag {
         }
     }
 
-    generateWriteMessageRequestFrag(offset = 0, value = null, size = 0x01) {
+    /**
+     * Generates write message to write current structure value to PLC
+     * 
+     * @param offset - Offset of data already written 
+     * @param value - Fragment of value of structure as a buffer
+     * @param size - size of the data
+     * @returns message
+     */
+    generateWriteMessageRequestFrag(offset: number = 0, value: Buffer = null, size: number = 0x01) {
         const { STRUCT } = CIP.DataTypes.Types;
 
         if(!this._template) {
@@ -104,7 +149,14 @@ class Structure extends Tag {
         }
     }
 
-    _parseReadData (data, template) {
+    /**
+     * Parse structure data read from PLC
+     * 
+     * @param data - data from PLC
+     * @param template - Template that forms the data structure
+     * @returns Structure tag value as an object
+     */
+    _parseReadData (data: Buffer, template: Template): any {
         if (template._members.length === 2 && template._members[0].name === "LEN" && template._members[1].name === "DATA")
             return bufferToString(data);
 
@@ -193,11 +245,11 @@ class Structure extends Tag {
                     if (member.type.arrayDims > 0) { 
                         let array = [];
                         for (let i = 0; i < member.info * memberStructSize; i+=memberStructSize) {
-                            array.push(this._parseReadData(data.slice(member.offset + i), memberTemplate));
+                            array.push(this._parseReadData(data.subarray(member.offset + i), memberTemplate));
                         }
                         structValues[member.name] = array;
                     } else {
-                        structValues[member.name] = this._parseReadData(data.slice(member.offset), memberTemplate);
+                        structValues[member.name] = this._parseReadData(data.subarray(member.offset), memberTemplate);
                     }
                     break;
                 }
@@ -211,15 +263,27 @@ class Structure extends Tag {
         return structValues;
     }
 
-    _parseReadDataArray(data) {
+    /**
+     * Parses and array of structure tag data read from PLC
+     * @param data - data from PLC 
+     * @returns Array of structure tag values as objects
+     */
+    _parseReadDataArray(data: Buffer): any[] {
         let array = [];
         for (let i = 0; i < data.length; i+=this._template._attributes.StructureSize) {
-            array.push(this._parseReadData(data.slice(i),this._template));
+            array.push(this._parseReadData(data.subarray(i),this._template));
         }
         return array;
     }
 
-    _parseWriteData (structValues, template) {
+    /**
+     * Creates data to send to PLC to write structure value
+     * 
+     * @param structValues - Structure tag value as an object / string 
+     * @param template - Template of Structure tag
+     * @returns Data to be sent to PLC
+     */
+    _parseWriteData (structValues: any, template: Template): Buffer {
         if (template._members.length === 2 && template._members[0].name === "LEN" && template._members[1].name === "DATA")
             return stringToBuffer(structValues, template._attributes.StructureSize);
 
@@ -324,7 +388,13 @@ class Structure extends Tag {
         return data;
     }
 
-    _parseWriteDataArray (newValue) {
+    /**
+     * Creates data to send to PLC to write and array of structure values 
+     * 
+     * @param newValue - array of sture values that are objects / strings
+     * @returns data message to be sent to PLC
+     */
+    _parseWriteDataArray (newValue: any[]) {
         let buf = Buffer.alloc(0);
 
         newValue.forEach(value => {
@@ -334,11 +404,18 @@ class Structure extends Tag {
         return buf;
     }
     
-    get controller_value() {
+    /**
+     * Get current value on the PLC controller
+     */
+    get controller_value(): Buffer {
         return this.state.tag.controllerValue;
     }
 
-    set controller_value(newValue) {
+    /**
+     *  Set controller value and update object value
+     *  @param newValue - Structure tag value as a buffer
+     */
+    set controller_value(newValue: any) {
         if (!equals(newValue, this.state.tag.controllerValue)) {
             let lastValue = null;
             if(this.state.tag.controllerValue !== null) 
@@ -360,7 +437,7 @@ class Structure extends Tag {
         } else {
             if (this.state.keepAlive > 0) {
                 const now = new Date();
-                if (now - this.state.timestamp >= this.state.keepAlive * 1000) {
+                if (now.getTime() - this.state.timestamp.getTime() >= this.state.keepAlive * 1000) {
                     this.state.tag.controllerValue = newValue;
 
                     const { stage_write } = this.state.tag;
@@ -377,4 +454,4 @@ class Structure extends Tag {
 
 
 
-module.exports = { Structure, Template};
+export { Structure, Template};

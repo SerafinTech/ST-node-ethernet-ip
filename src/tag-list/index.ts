@@ -1,5 +1,5 @@
-const { CIP } = require("../enip");
-const { Template } = require("../structure");
+import { CIP } from "../enip";
+import { Template } from "../structure";
 
 class TagList {
     constructor () {
@@ -260,4 +260,4 @@ class TagList {
   
 }
 
-module.exports = TagList;
+export default TagList;
