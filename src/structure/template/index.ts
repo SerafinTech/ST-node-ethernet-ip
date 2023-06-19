@@ -1,17 +1,59 @@
-const { CIP } = require ("../../enip");
+import { CIP } from "../../enip";
 
+type templateType = {
+    code: number,
+    string: string,
+    structure: boolean,
+    reserved: boolean,
+    arrayDims: number
+}
+
+type templateMember = {
+    name: string,
+    info: number,
+    type: templateType,
+    offset: number
+}
+
+type templateAttributes = {
+    id: number,
+    ObjDefinitionSize: number,
+    StructureSize: number,
+    MemberCount: number,
+    StructureHandle: number
+}
 
 class Template {
+    _attributes: templateAttributes;
+    _members: templateMember[];
+    _name: string;
+    id: number;
 
+    /**
+     * Template Class reads and parses information template information that is used for parsing STRUCT datatypes
+     */
     constructor () {
 
-        this._attributes = {};
+        this._attributes = {
+            id: null,
+            ObjDefinitionSize: null,
+            StructureSize: null,
+            MemberCount: null,
+            StructureHandle: null
+        };
         this._members = [];
         this._name = "";
+        this.id = null;
 
     }
 
-    _buildGetTemplateAttributesCIP (templateID) {
+    /**
+     * Build CIP message to get template attributes
+     * 
+     * @param templateID - Id number of template
+     * @returns CIP message to get template attributes
+     */
+    _buildGetTemplateAttributesCIP (templateID: number): Buffer {
         const attributeCount = Buffer.from([0x04, 0x00]); 
         const attributeList = Buffer.from([0x04, 0x00, 0x05, 0x00, 0x02, 0x00, 0x01, 0x00]); // Attributes 4, 5, 2, 1
     
@@ -25,7 +67,12 @@ class Template {
         return CIP.MessageRouter.build(CIP.MessageRouter.services.GET_ATTRIBUTES, path, Buffer.concat([attributeCount, attributeList]));
     }
 
-    _parseReadTemplateAttributes(data) {
+    /**
+     * Parse message response and store template attributes
+     * 
+     * @param data - message response 
+     */
+    _parseReadTemplateAttributes(data: Buffer): void {
         let pointer = 6;
 
         this._attributes.ObjDefinitionSize = data.readUInt32LE(pointer);
@@ -37,7 +84,14 @@ class Template {
         this._attributes.StructureHandle = data.readUInt16LE(pointer);
     }
 
-    _buildGetTemplateCIP (offset = 0, reqSize) {
+    /**
+     * Build CIP message to get template members
+     * 
+     * @param offset 
+     * @param reqSize 
+     * @returns CIP message to get template members
+     */
+    _buildGetTemplateCIP (offset:number = 0, reqSize: number): Buffer {
 
         const { LOGICAL } = CIP.EPATH.segments;
 
@@ -54,11 +108,17 @@ class Template {
         return CIP.MessageRouter.build(CIP.MessageRouter.services.READ_TAG, path, Buffer.concat([ offsetBuf, size ])); 
     }
 
-    _parseReadTemplate(data) {
+    /**
+     * Parse Template message data to create and store template member info
+     * 
+     * @param data 
+     */
+    _parseReadTemplate(data: Buffer) {
         let pointer = 0;
     
         for (let i = 0; i < this._attributes.MemberCount; i++) {
             this._members.push({
+                name: '',
                 info: data.readUInt16LE(pointer),
                 type: {
                     code: data.readUInt16LE(pointer + 2) & 0x0fff,
@@ -100,10 +160,17 @@ class Template {
             this._members[j].name = String.fromCharCode(...memberNameArray);
         }
     }
-  
-    _getTemplateAttributes(PLC, templateID) {
+
+    /**
+     * Retrives Template attributes from PLC
+     * 
+     * @param PLC - Controller Class Object
+     * @param templateID - template ID number
+     * @returns Promise resolved after retrival of template attributes
+     */
+    _getTemplateAttributes(PLC: any, templateID: number): Promise<void> {
         this.id = templateID;
-        return new Promise((resolve, reject) => {
+        return new Promise<void>((resolve, reject) => {
             const cipData = this._buildGetTemplateAttributesCIP(templateID);
             PLC.write_cip(cipData);
 
@@ -134,16 +201,22 @@ class Template {
         });
     }
 
-    _getTemplate(PLC) {
+    /**
+     * Retrives the Template from PLC based on attribute data
+     * 
+     * @param PLC - Controller Class object
+     * @returns 
+     */
+    _getTemplate(PLC: any): Promise<void> {
         return new Promise(async (resolve, reject) => {
 
             const reqSize = this._attributes.ObjDefinitionSize * 4 - 16; // Full template request size calc
             let dataBuffer = Buffer.alloc(0);
             let currOffset = 0;
 
-            // Recusive Function incase template is bigger than max packet size
-            const getTempData = (offset , getTempReqSize) => {
-                return new Promise((res, rej) => {
+            // Recursive Function incase template is bigger than max packet size
+            const getTempData = (offset: number , getTempReqSize: number) => {
+                return new Promise<void>((res, rej) => {
                     const cipData = this._buildGetTemplateCIP(offset, getTempReqSize);
                     PLC.write_cip(cipData);
 
@@ -189,7 +262,14 @@ class Template {
         });
     }
 
-    async getTemplate(PLC, templateID) {
+    /**
+     * Retrives complete template from PLC
+     * 
+     * @param PLC - Controller Class object
+     * @param templateID - Template ID
+     * @returns Promise resolved upon retrival of template
+     */
+    async getTemplate(PLC: any, templateID: number): Promise<void> {
         this._attributes.id = templateID;
         await this._getTemplateAttributes(PLC, templateID);
         return await this._getTemplate(PLC);
