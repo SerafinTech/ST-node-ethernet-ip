@@ -35,8 +35,19 @@ type tagState = {
     instance: string,
     keepAlive: number
 };
+
 class Tag extends EventEmitter {
     state: tagState;
+    /**
+     * PLC Tag Object
+     * 
+     * @param tagname - Tagname
+     * @param program - Program name. Leave undefined for Controller scope
+     * @param datatype - Data type code if it needs to be explicitly defined (Not commonly used)
+     * @param keepAlive - Time interval in mS to set stage_write to true to keep connection alive.  0 = disabled.
+     * @param arrayDims - Dimensions of an array tag
+     * @param arraySize - Size of array
+     */
     constructor(tagname: string, program: string = null, datatype:number = null, keepAlive: number = 0, arrayDims:number = 0, arraySize:number = 0x01) {
         super();
 
@@ -137,10 +148,9 @@ class Tag extends EventEmitter {
      *
      * @readonly
      * @static
-     * @returns {number} instances
-     * @memberof Tag
+     * @returns instances
      */
-    static get instances() {
+    static get instances(): number {
         return instances;
     }
 
@@ -148,20 +158,18 @@ class Tag extends EventEmitter {
      * Returns the Tag Instance ID
      *
      * @readonly
-     * @returns {string} Instance ID
-     * @memberof Tag
+     * @returns Instance ID
      */
-    get instance_id() {
+    get instance_id(): string {
         return this.state.instance;
     }
 
     /**
      * Gets Tagname
      *
-     * @memberof Tag
-     * @returns {string} tagname
+     * @returns tagname
      */
-    get name() {
+    get name():string {
         const { program, name } = this.state.tag;
 
         if (program === null) {
@@ -174,10 +182,9 @@ class Tag extends EventEmitter {
     /**
      * Sets Tagname if Valid
      *
-     * @memberof Tag
-     * @property {string} New Tag Name
+     * @param name - New Tag Name
      */
-    set name(name) {
+    set name(name: string) {
         if (!Tag.isValidTagname(name)) throw new Error("Tagname Must be of Type <string>");
         this.state.tag.name = name;
     }
@@ -185,10 +192,9 @@ class Tag extends EventEmitter {
     /**
      * Gets Tag Datatype
      *
-     * @memberof Tag
-     * @returns {string} datatype
+     * @returns datatype
      */
-    get type() {
+    get type(): string {
         return getTypeCodeString(this.state.tag.type);
     }
 
@@ -196,20 +202,18 @@ class Tag extends EventEmitter {
      * Gets Tag Bit Index
      * - Returns null if no bit index has been assigned
      *
-     * @memberof Tag
-     * @returns {number} bitIndex
+     * @returns bitIndex
      */
-    get bitIndex() {
+    get bitIndex(): number {
         return this.state.tag.bitIndex;
     }
 
     /**
      * Sets Tag Datatype if Valid
      *
-     * @memberof Tag
-     * @property {number} Valid Datatype Code
+     * @param type - Valid Datatype Code
      */
-    set type(type) {
+    set type(type: number) {
         if (!isValidTypeCode(type)) throw new Error("Datatype must be a Valid Type Code <number>");
         this.state.tag.type = type;
     }
@@ -217,8 +221,7 @@ class Tag extends EventEmitter {
     /**
      * Gets Tag Read Size
      *
-     * @memberof Tag
-     * @returns {number} read size
+     * @returns read size
      */
     get read_size() {
         return this.state.read_size;
@@ -227,12 +230,11 @@ class Tag extends EventEmitter {
     /**
      * Sets Tag Read Size
      *
-     * @memberof Tag
-     * @property {number} read size
+     * @param size - read size
      */
-    set read_size(size) {
-        if (typeof type !== "number")
-            throw new Error("Read Size must be a Valid Type Code <number>");
+    set read_size(size: number) {
+        if (typeof size !== "number")
+            throw new Error("Read Size must be a number");
         this.state.read_size = size;
     }
 
@@ -240,10 +242,9 @@ class Tag extends EventEmitter {
      * Gets Tag value
      * - Returns null if no value has been read
      *
-     * @memberof Tag
-     * @returns {number|string|boolean|object} value
+     * @returns value
      */
-    get value() {
+    get value(): any {
         if (Array.isArray(this.state.tag.value)) {
             let prevValue = [...this.state.tag.value];
             setTimeout(() => {
@@ -258,8 +259,7 @@ class Tag extends EventEmitter {
     /**
      * Sets Tag Value
      *
-     * @memberof Tag
-     * @property {number|string|boolean|object} new value
+     * @param newValue - value
      */
     set value(newValue) {
         if (!equals(newValue, this.state.tag.value))
@@ -271,10 +271,9 @@ class Tag extends EventEmitter {
     /**
      * Sets Controller Tag Value and Emits Changed Event
      *
-     * @memberof Tag
-     * @property {number|string|boolean|object} new value
+     * @param new - value
      */
-    set controller_value(newValue) {
+    set controller_value(newValue: any) {
         if (!equals(newValue,this.state.tag.controllerValue)) {
             let lastValue = null;
             lastValue = this.state.tag.controllerValue;
@@ -290,7 +289,7 @@ class Tag extends EventEmitter {
         } else {
             if (this.state.keepAlive > 0) {
                 const now = new Date();
-                if (now - this.state.timestamp >= this.state.keepAlive * 1000) {
+                if (now.getTime() - this.state.timestamp.getTime() >= this.state.keepAlive * 1000) {
                     this.state.tag.controllerValue = newValue;
 
                     const { stage_write } = this.state.tag;
@@ -306,10 +305,9 @@ class Tag extends EventEmitter {
     /**
      * Sets Controller Tag Value and Emits Changed Event
      *
-     * @memberof Tag
-     * @returns {number|string|boolean|object} new value
+     * @returns new value
      */
-    get controller_value() {
+    get controller_value(): any {
         return this.state.tag.controllerValue;
     }
 
@@ -317,10 +315,9 @@ class Tag extends EventEmitter {
      * Gets Timestamp in a Human Readable Format
      *
      * @readonly
-     * @memberof Tag
-     * @returns {string}
+     * @returns Timestamp formatted as "mm/dd/yyyy-HH:MM:ss.l"
      */
-    get timestamp() {
+    get timestamp(): string {
         return dateFormat(this.state.timestamp, "mm/dd/yyyy-HH:MM:ss.l");
     }
 
@@ -328,10 +325,9 @@ class Tag extends EventEmitter {
      * Gets Javascript Date Object of Timestamp
      *
      * @readonly
-     * @memberof Tag
-     * @returns {Date}
+     * @returns Date object
      */
-    get timestamp_raw() {
+    get timestamp_raw(): Date {
         return this.state.timestamp;
     }
 
@@ -339,10 +335,9 @@ class Tag extends EventEmitter {
      * Gets Error
      *
      * @readonly
-     * @memberof Tag
-     * @returns {object|null} error
+     * @returns error
      */
-    get error() {
+    get error(): tagError {
         return this.state.error.code ? this.state.error : null;
     }
 
@@ -350,20 +345,18 @@ class Tag extends EventEmitter {
      * Returns a Padded EPATH of Tag
      *
      * @readonly
-     * @returns {buffer} Padded EPATH
-     * @memberof Tag
+     * @returns Padded EPATH
      */
-    get path() {
+    get path(): Buffer {
         return this.state.tag.path;
     }
 
     /**
      * Returns a whether or not a write is staging
      *
-     * @returns {boolean}
-     * @memberof Tag
+     * @returns true or false
      */
-    get write_ready() {
+    get write_ready(): boolean {
         return this.state.tag.stage_write;
     }
     // endregion
@@ -372,11 +365,10 @@ class Tag extends EventEmitter {
     /**
      * Generates Read Tag Message
      *
-     * @param {number} [size=null]
+     * @param size
      * @returns {buffer} - Read Tag Message Service
-     * @memberof Tag
      */
-    generateReadMessageRequest(size = null) {
+    generateReadMessageRequest(size: number = null): Buffer {
         if (size) this.state.read_size = size;
 
         const { tag } = this.state;
@@ -392,12 +384,11 @@ class Tag extends EventEmitter {
     /**
      * Generates Fragmented Read Tag Message
      *
-     * @param {number} [offset=0]
-     * @param {number} [size=null]
-     * @returns {buffer} - Read Tag Message Service
-     * @memberof Tag
+     * @param offset - offset based on previous message
+     * @param size 
+     * @returns Read Tag Message Service
      */
-    generateReadMessageRequestFrag(offset = 0, size = null) {
+    generateReadMessageRequestFrag(offset: number = 0, size: number = null): Buffer {
         if (size) this.state.read_size = size;
 
         const { tag } = this.state;
@@ -414,10 +405,9 @@ class Tag extends EventEmitter {
     /**
      *  Parses Good Read Request Messages
      *
-     * @param {buffer} Data Returned from Successful Read Tag Request
-     * @memberof Tag
+     * @param Data - Returned from Successful Read Tag Request
      */
-    parseReadMessageResponse(data) {
+    parseReadMessageResponse(data: Buffer) {
         // Set Type of Tag Read
         const type = data.readUInt16LE(0);
         this.state.tag.type = type;
@@ -435,10 +425,9 @@ class Tag extends EventEmitter {
     /**
      *  Parses Good Read Request Messages Using A Mask For A Specified Bit Index
      *
-     * @param {buffer} Data Returned from Successful Read Tag Request
-     * @memberof Tag
+     * @param Data - Returned from Successful Read Tag Request
      */
-    parseReadMessageResponseValueForBitIndex(data) {
+    parseReadMessageResponseValueForBitIndex(data: Buffer) {
         const { tag } = this.state;
         const { SINT, INT, DINT, BIT_STRING, UINT } = Types;
 
@@ -473,10 +462,9 @@ class Tag extends EventEmitter {
     /**
      *  Parses Good Read Request Messages For Atomic Data Types
      *
-     * @param {buffer} Data Returned from Successful Read Tag Request
-     * @memberof Tag
+     * @param Data - Returned from Successful Read Tag Request
      */
-    parseReadMessageResponseValueForAtomic(data) {
+    parseReadMessageResponseValueForAtomic(data: Buffer) {
         const { SINT, INT, DINT, REAL, BOOL, LINT, BIT_STRING, UINT } = Types;
 
         const { read_size } = this.state;
@@ -577,12 +565,12 @@ class Tag extends EventEmitter {
     /**
      * Generates Write Tag Message
      *
-     * @param {number|boolean|object|string} [newValue=null] - If Omitted, Tag.value will be used
-     * @param {number} [size=0x01]
-     * @returns {buffer} - Write Tag Message Service
+     * @param value - If Omitted, Tag.value will be used
+     * @param size
+     * @returns Write Tag Message Service
      * @memberof Tag
      */
-    generateWriteMessageRequest(value = null, size = 0x01) {
+    generateWriteMessageRequest(value: any = null, size: number = 0x01): Buffer {
         if (value !== null) this.state.tag.value = value;
 
         const { tag } = this.state;
@@ -601,12 +589,10 @@ class Tag extends EventEmitter {
     /**
      * Generates Write Tag Message For A Bit Index
      *
-     * @param {number|boolean|object|string} value
-     * @param {number} size
-     * @returns {buffer} - Write Tag Message Service
-     * @memberof Tag
+     * @param value
+     * @returns Write Tag Message Service
      */
-    generateWriteMessageRequestForBitIndex(value) {
+    generateWriteMessageRequestForBitIndex(value: number): Buffer {
         const { tag } = this.state;
         const { SINT, INT, DINT, BIT_STRING } = Types;
 
@@ -647,12 +633,11 @@ class Tag extends EventEmitter {
     /**
      * Generates Write Tag Message For Atomic Types
      *
-     * @param {number|boolean|object|string} value
-     * @param {number} size
-     * @returns {buffer} - Write Tag Message Service
-     * @memberof Tag
+     * @param value
+     * @param size
+     * @returns Write Tag Message Service
      */
-    generateWriteMessageRequestForAtomic(value, size) {
+    generateWriteMessageRequestForAtomic(value: any, size: number) {
         const { tag } = this.state;
         const { SINT, INT, DINT, REAL, BOOL, LINT } = Types;
         // Build Message Router to Embed in UCMM
@@ -755,7 +740,7 @@ class Tag extends EventEmitter {
      *
      * @memberof Tag
      */
-    unstageWriteRequest() {
+    unstageWriteRequest(): void {
         const { tag } = this.state;
         tag.stage_write = false;
         tag.controllerValue = tag.value;
@@ -765,12 +750,10 @@ class Tag extends EventEmitter {
     /**
      * Determines if a Tagname is Valid
      *
-     * @static
-     * @param {string} tagname
-     * @returns {boolean}
-     * @memberof Tag
+     * @param tagname - Name of PLC tag
+     * @returns true or false
      */
-    static isValidTagname(tagname) {
+    static isValidTagname(tagname: string): boolean {
         if (typeof tagname !== "string") return false;
 
         // regex components
@@ -830,10 +813,10 @@ class Tag extends EventEmitter {
  * Generates Unique ID for Each Instance
  * based on the Generated EPATH
  *
- * @param {buffer} input - EPATH of Tag
- * @returns {string} hash
+ * @param input - EPATH of Tag
+ * @returns hash
  */
-const hash = input => {
+const hash = (input: Buffer): string => {
     return crypto
         .createHash("md5")
         .update(input)
