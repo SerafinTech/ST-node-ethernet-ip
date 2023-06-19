@@ -1,9 +1,9 @@
-const { Socket, isIPv4 } = require("net");
-const { EIP_PORT } = require("../config");
-const encapsulation = require("./encapsulation");
-const CIP = require("./cip");
+import { Socket, isIPv4 } from 'net';
+import { EIP_PORT } from '../config';
+import * as encapsulation from './encapsulation';
+import * as CIP from './cip';
 const { promiseTimeout } = require("../utilities");
-const { lookup } = require("dns");
+import { lookup } from 'dns';
 
 /**
  * Low Level Ethernet/IP
@@ -17,7 +17,34 @@ const { lookup } = require("dns");
  * @fires ENIP#SendUnitData Received
  * @fires ENIP#Unhandled Encapsulated Command Received
  */
+type enipTCP = {
+    establishing: boolean;
+    established: boolean;
+}
+
+type enipSession = {
+    id: number,
+    establishing: boolean,
+    established: boolean,
+}
+
+type enipConnection = {
+    id: number,
+    establishing: boolean,
+    established: boolean,
+    seq_num: number
+}
+
+type enipError = {code: number, msg: string}
+
 class ENIP extends Socket {
+    state: {
+        TCP: enipTCP,
+        session: enipSession,
+        connection: enipConnection,
+        error: enipError
+    }
+
     constructor() {
         super();
 
@@ -136,15 +163,14 @@ class ENIP extends Socket {
      * and Returns a Promise with the Established Session ID
      *
      * @override
-     * @param {string} IP_ADDR - IPv4 Address (can also accept a FQDN, provided port forwarding is configured correctly.)
-     * @returns {Promise}
-     * @memberof ENIP
+     * @param IP_ADDR - IPv4 Address (can also accept a FQDN, provided port forwarding is configured correctly.)
+     * @returns Session Id
      */
-    async connect(IP_ADDR, timeoutSP=10000) {
+    async enipConnect(IP_ADDR: string, timeoutSP: number = 10000): Promise<number> {
         if (!IP_ADDR) {
             throw new Error("Controller <class> requires IP_ADDR <string>!!!");
         }
-        await new Promise((resolve, reject) => {
+        await new Promise<void>((resolve, reject) => {
             lookup(IP_ADDR, (err, addr) => {
                 if (err) reject(new Error("DNS Lookup failed for IP_ADDR " + IP_ADDR));
 
@@ -166,7 +192,7 @@ class ENIP extends Socket {
 
         // Connect to Controller and Then Send Register Session Packet
         await promiseTimeout(
-            new Promise((resolve, reject)=> {
+            new Promise<void>((resolve, reject)=> {
                 let socket = super.connect(
                     EIP_PORT,
                     IP_ADDR,
@@ -224,13 +250,12 @@ class ENIP extends Socket {
      *        implementation. =[. Thus, I am spinning up a new Method to
      *        handle it. Dont Use Enip.write, use this function instead.
      *
-     * @param {buffer} data - Data Buffer to be Encapsulated
-     * @param {boolean} [connected=false]
-     * @param {number} [timeout=10] - Timeout (sec)
-     * @param {function} [cb=null] - Callback to be Passed to Parent.Write()
-     * @memberof ENIP
+     * @param data - Data Buffer to be Encapsulated
+     * @param connected - Connected communication
+     * @param timeout - Timeout (sec)
+     * @param cb - Callback to be Passed to Parent.Write()
      */
-    write_cip(data, connected = false, timeout = 10, cb = null) {
+    write_cip(data: Buffer, connected: boolean = false, timeout: number = 10, cb: () => void = null) {
         const { sendRRData, sendUnitData } = encapsulation;
         const { session, connection } = this.state;
 
@@ -263,21 +288,23 @@ class ENIP extends Socket {
      * @param {Exception} exception - Gets passed to 'error' event handler
      * @memberof ENIP
      */
-    destroy(exception) {
+    destroy(exception?: Error): this {
         const { unregisterSession } = encapsulation;
         const unregisteredSession = unregisterSession(this.state.session.id);
-
+        
         const onClose = () => {
             this.state.session.established = false;
             super.destroy(exception);
         };
-
+        
         // Only write to the socket if is not closed. 
-        if (exception && !exception.code === "EPIPE") {
+        if (exception !== undefined && exception.name !== "EPIPE" ) {
             this.write(unregisteredSession, onClose);    
         } else {            
             onClose();
         }
+
+        return this;
     }
     // endregion
 
@@ -307,17 +334,16 @@ class ENIP extends Socket {
     /**
      * Socket.on('data) Event Handler
      *
-     * @param {Buffer} - Data Received from Socket.on('data', ...)
-     * @memberof ENIP
+     * @param data - Data Received from Socket.on('data', ...)
      */
-    _handleDataEvent(data) {
+    _handleDataEvent(data: Buffer): void {
         const { header, CPF, commands } = encapsulation;
 
         const encapsulatedData = header.parse(data);
         const { statusCode, status, commandCode } = encapsulatedData;
 
         if (statusCode !== 0) {
-            console.log(`Error <${statusCode}>:`.red, status.red);
+            console.log(`Error <${statusCode}>:`, status);
 
             this.state.error.code = statusCode;
             this.state.error.msg = status;
@@ -375,4 +401,4 @@ class ENIP extends Socket {
     // endregion
 }
 
-module.exports = { ENIP, CIP, encapsulation };
+export { ENIP, CIP, encapsulation };

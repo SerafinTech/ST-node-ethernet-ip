@@ -34,6 +34,8 @@
         "task-easy": "^0.2.0"
     },
     "devDependencies": {
+        "@types/dateformat": "^5.0.0",
+        "@types/deep-equal": "^1.0.1",
         "@types/node": "^18.16.18",
         "colors": "^1.3.2",
         "coveralls": "^3.0.2",

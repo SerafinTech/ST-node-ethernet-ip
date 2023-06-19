@@ -5,6 +5,7 @@
     "module": "commonjs",
     "target": "es2019",
     "allowJs": true,
-    "outDir": "./built"
+    "outDir": "./built",
+    "esModuleInterop": true
   }
 }

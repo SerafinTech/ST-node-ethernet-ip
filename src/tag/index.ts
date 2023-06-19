@@ -1,16 +1,43 @@
-const { EventEmitter } = require("events");
-const crypto = require("crypto");
-const { CIP } = require("../enip");
+import { EventEmitter } from 'events';
+import * as crypto from 'crypto';
+import { CIP } from '../enip';
 const { MessageRouter } = CIP;
 const { READ_TAG, WRITE_TAG, READ_MODIFY_WRITE_TAG, READ_TAG_FRAGMENTED } = MessageRouter.services;
-const { Types, getTypeCodeString, isValidTypeCode } = require("../enip/cip/data-types");
-const dateFormat = require("dateformat");
-const equals = require("deep-equal");
+import { Types, getTypeCodeString, isValidTypeCode } from '../enip/cip/data-types';
+import * as dateFormat from 'dateformat';
+import equals from 'deep-equal';
 
 // Static Class Property - Tracks Instances
 let instances = 0;
+
+type tag = {
+    name: string,
+    type: number,
+    bitIndex: number,
+    arrayDims: number,
+    value: any,
+    controllerValue: any,
+    path: Buffer,
+    program: string,
+    stage_write: boolean
+};
+
+type tagError = {
+    code: number,
+    status: any
+};
+
+type tagState = {
+    tag: tag,
+    read_size: number,
+    error: tagError,
+    timestamp: Date,
+    instance: string,
+    keepAlive: number
+};
 class Tag extends EventEmitter {
-    constructor(tagname, program = null, datatype = null, keepAlive = 0, arrayDims = 0, arraySize = 0x01) {
+    state: tagState;
+    constructor(tagname: string, program: string = null, datatype:number = null, keepAlive: number = 0, arrayDims:number = 0, arraySize:number = 0x01) {
         super();
 
         if (!Tag.isValidTagname(tagname)) throw new Error("Tagname Must be of Type <string>");
@@ -37,10 +64,10 @@ class Tag extends EventEmitter {
         // Check for bit index (tag ends in .int) - this only applies to SINT, INT, DINT or array elements of
         // Split by "." to only check udt members and bit index.
         let memArr = tagname.split(".");
-        let isBitIndex = (memArr.length > 1) & (memArr[memArr.length - 1] % 1 === 0);
+        let isBitIndex = (memArr.length > 1) && !isNaN(Number(memArr[memArr.length - 1]));
 
         // Check if BIT_STRING data type was passed in
-        let isBitString = datatype === Types.BIT_STRING && pathArr[pathArr.length - 1] % 1 === 0;
+        let isBitString = datatype === Types.BIT_STRING && !isNaN(Number(pathArr[pathArr.length - 1]));
 
         // Tag can not be both a bit index and BIT_STRING
         if (isBitString && isBitIndex)
@@ -58,8 +85,8 @@ class Tag extends EventEmitter {
         } else {
             if (isBitIndex) {
                 // normal bit index handling
-                bitIndex = parseInt(pathArr.pop(-1));
-                if ((bitIndex < 0) | (bitIndex > 31))
+                bitIndex = parseInt(pathArr.pop());
+                if ((bitIndex < 0) || (bitIndex > 31))
                     throw new Error(`Tag bit index must be between 0 and 31, received ${bitIndex}`);
             }
         }
