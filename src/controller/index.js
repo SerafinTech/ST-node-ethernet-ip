@@ -1128,7 +1128,7 @@ class Controller extends ENIP {
 
                 this.removeAllListeners("Multiple Service Packet");
 
-                group.parseWriteMessageRequests(data, msg.tag_ids);
+                group.parseWriteMessageRequests(msg.tag_ids);
             } else {
                 await this.writeTag(msg.tag).catch(e => {throw e;});
             }

@@ -4,7 +4,7 @@ import { CIP } from '../enip';
 const { MessageRouter } = CIP;
 const { READ_TAG, WRITE_TAG, READ_MODIFY_WRITE_TAG, READ_TAG_FRAGMENTED } = MessageRouter.services;
 import { Types, getTypeCodeString, isValidTypeCode } from '../enip/cip/data-types';
-import * as dateFormat from 'dateformat';
+import dateFormat from 'dateformat';
 import equals from 'deep-equal';
 
 // Static Class Property - Tracks Instances
@@ -824,4 +824,4 @@ const hash = (input: Buffer): string => {
         .digest("hex");
 };
 
-module.exports = Tag;
+export default Tag;

@@ -1,11 +1,33 @@
-const { CIP } = require("../enip");
-const { EventEmitter } = require("events");
+import { CIP } from "../enip";
+import { EventEmitter } from "events";
 const { LOGICAL } = CIP.EPATH.segments;
 const { MessageRouter } = CIP;
 const { MULTIPLE_SERVICE_PACKET } = MessageRouter.services;
-const equals = require("deep-equal");
+import equals from "deep-equal";
+import type Tag from "../tag";
+
+type tagGroupState = {
+    tags: object,
+    path: Buffer,
+    timestamp: Date
+}
+
+type readMessageRequests = {
+    data: Buffer,
+    tag_ids: string[]
+}
+
+type writeTagMessageRequests = {
+    data: Buffer,
+    tag: Tag,
+    tag_ids: string[]
+}
 
 class TagGroup extends EventEmitter {
+    state: tagGroupState;
+    /**
+     * Tag Group Class used for reading and writing multiple tags at once
+     */
     constructor() {
         super();
 
@@ -25,10 +47,9 @@ class TagGroup extends EventEmitter {
      * Fetches the Number of Tags
      *
      * @readonly
-     * @returns {number}
-     * @memberof TagGroup
+     * @returns Number of tags
      */
-    get length() {
+    get length(): number {
         return Object.keys(this.state.tags).length;
     }
     // endregion
@@ -36,30 +57,27 @@ class TagGroup extends EventEmitter {
     /**
      * Adds Tag to Group
      *
-     * @param {Tag} tag - Tag to Add to Group
-     * @memberof TagGroup
+     * @param tag - Tag to Add to Group
      */
-    add(tag) {
+    add(tag: Tag): void {
         if (!this.state.tags[tag.instance_id]) this.state.tags[tag.instance_id] = tag;
     }
 
     /**
      * Removes Tag from Group
      *
-     * @param {Tag} tag - Tag to be Removed from Group
-     * @memberof TagGroup
+     * @param tag - Tag to be Removed from Group
      */
-    remove(tag) {
+    remove(tag: Tag) {
         if (this.state.tags[tag.instance_id]) delete this.state.tags[tag.instance_id];
     }
 
     /**
      * Iterable, Allows user to Iterate of each Tag in Group
      *
-     * @param {function} callback - Accepts Tag Class
-     * @memberof TagGroup
+     * @param callback - Accepts Tag Class
      */
-    forEach(callback) {
+    forEach(callback: (tag: Tag) => {}) {
         for (let key of Object.keys(this.state.tags)) callback(this.state.tags[key]);
     }
 
@@ -67,10 +85,9 @@ class TagGroup extends EventEmitter {
      * Generates Array of Messages to Compile into a Multiple
      * Service Request
      *
-     * @returns {Array} - Array of Read Tag Message Services
-     * @memberof TagGroup
+     * @returns Array of Read Tag Message Services
      */
-    generateReadMessageRequests() {
+    generateReadMessageRequests(): readMessageRequests[] {
         const { tags } = this.state;
 
         // Initialize Variables
@@ -141,11 +158,11 @@ class TagGroup extends EventEmitter {
     /**
      * Parse Incoming Multi Service Request Messages
      *
-     * @param {Array} responses
-     * @param {Arrayany} ids
-     * @memberof TagGroup
+     * @param responses - response from controller
+     * @param ids - Tag ids
+
      */
-    parseReadMessageResponses(responses, ids) {
+    parseReadMessageResponses(responses: any[], ids: string[]) {
         for (let i = 0; i < ids.length; i++) {
             if(responses[i].generalStatusCode === 0)
                 this.state.tags[ids[i]].parseReadMessageResponse(responses[i].data);
@@ -156,10 +173,9 @@ class TagGroup extends EventEmitter {
      * Generates Array of Messages to Compile into a Multiple
      * Service Request
      *
-     * @returns {Array} - Array of Read Tag Message Services
-     * @memberof TagGroup
+     * @returns Array of Write Tag Message Services
      */
-    generateWriteMessageRequests() {
+    generateWriteMessageRequests(): writeTagMessageRequests[] {
         const { tags } = this.state;
 
         // Initialize Variables
@@ -202,13 +218,13 @@ class TagGroup extends EventEmitter {
                         buf = Buffer.concat([buf, ...msgArr]);
                         buf = MessageRouter.build(MULTIPLE_SERVICE_PACKET, this.state.path, buf);
 
-                        messages.push({ data: buf, tag_ids: tagIds });
+                        messages.push({ data: buf, tag: null, tag_ids: tagIds });
                         messageLength = 0;
                         msgArr = [];
                         tagIds = [];
                     }
                 } else {
-                    messages.push({data: null, tag: tag});
+                    messages.push({data: null, tag: tag, tagIds: null});  // Single tag pushed to indicate need to write single STRUCT tag
                 }
             }
         }
@@ -230,7 +246,7 @@ class TagGroup extends EventEmitter {
             buf = Buffer.concat([buf, ...msgArr]);
             buf = MessageRouter.build(MULTIPLE_SERVICE_PACKET, this.state.path, buf);
 
-            messages.push({ data: buf, tag_ids: tagIds });
+            messages.push({ data: buf, tag: null, tag_ids: tagIds });
         }
 
         return messages;
@@ -239,11 +255,9 @@ class TagGroup extends EventEmitter {
     /**
      * Parse Incoming Multi Service Request Messages
      *
-     * @param {Array} responses
-     * @param {Arrayany} ids
-     * @memberof TagGroup
+     * @param ids
      */
-    parseWriteMessageRequests(responses, ids) {
+    parseWriteMessageRequests(ids: string[]) {
         for (let id of ids) {
             this.state.tags[id].unstageWriteRequest();
         }
