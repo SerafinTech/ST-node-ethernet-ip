@@ -362,6 +362,7 @@ class Tag extends EventEmitter {
     // endregion
 
     // region Public Methods
+    
     /**
      * Generates Read Tag Message
      *
