@@ -157,7 +157,7 @@ class ENIP extends Socket {
     // endregion
 
     // region Public Method Definitions
-
+    connect(port: unknown, host?: unknown, connectionListener?: unknown): any
     /**
      * Initializes Session with Desired IP Address or FQDN
      * and Returns a Promise with the Established Session ID
@@ -166,7 +166,7 @@ class ENIP extends Socket {
      * @param IP_ADDR - IPv4 Address (can also accept a FQDN, provided port forwarding is configured correctly.)
      * @returns Session Id
      */
-    async enipConnect(IP_ADDR: string, timeoutSP: number = 10000): Promise<number> {
+    async connect(IP_ADDR: string, timeoutSP: number = 10000): Promise<number> {
         if (!IP_ADDR) {
             throw new Error("Controller <class> requires IP_ADDR <string>!!!");
         }

@@ -1,4 +1,4 @@
-const {ControllerManager} = require('../src/index.js')
+const {ControllerManager} = require('../built/index.js')
 
 let cm = new ControllerManager()
 

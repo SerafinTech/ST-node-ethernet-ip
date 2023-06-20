@@ -37,7 +37,7 @@ const fixedVar = {
 /**
  * Build for Object specific connection parameters (Vol.1 - Table 3-5.8)
  */
-const build_connectionParameters = (owner: 0 | 1, type: 0 | 1 | 2 | 3, priority: 0 | 1 | 2 | 3, fixedVar: 0 | 1, size: number): number => {
+const build_connectionParameters = (owner: number, type: number, priority: number, fixedVar: number, size: number): number => {
     if (owner != 0 && owner != 1) throw new Error("Owner can only be exclusive (0) or multiple (1)");
     if (type > 3 || type < 0) throw new Error("Type can only be Null(0), Multicast(1), PointToPoint(2) or Reserved(3)");
     if (priority > 3 || priority < 0) throw new Error("Priority can only be Low(0), High(1), Scheduled(2) or Urgent(3)");

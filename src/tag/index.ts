@@ -213,9 +213,14 @@ class Tag extends EventEmitter {
      *
      * @param type - Valid Datatype Code
      */
-    set type(type: number) {
-        if (!isValidTypeCode(type)) throw new Error("Datatype must be a Valid Type Code <number>");
-        this.state.tag.type = type;
+    set type(type: string | number) {
+        if (typeof type === 'number') {
+            if (!isValidTypeCode(type)) throw new Error("Datatype must be a Valid Type Code <number>");
+            this.state.tag.type = type;
+        } else {
+            if (!isValidTypeCode(Types[type])) throw new Error("Datatype must be a Valid Type Code <number>");
+            this.state.tag.type = Types[type] 
+        }   
     }
 
     /**

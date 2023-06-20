@@ -3,11 +3,11 @@ import {ENIP, enipConnection, enipError, enipTCP, enipSession} from "../enip";
 import dateFormat from "dateformat";
 import TagGroup from "../tag-group";
 import { delay, promiseTimeout } from "../utilities";
-import TagList from "../tag-list";
-import { Structure } from "../structure";
+import TagList, { tagListTag, tagListTemplates } from "../tag-list";
+import { Structure, Template } from "../structure";
 import Queue from "task-easy";
 import Tag from "../tag";
-import { SocketConnectOpts } from "net";
+import type {CommonPacketData} from '../enip/encapsulation'
 
 const compare = (obj1: any, obj2: any) => {
     if (obj1.priority > obj2.priority) return true;
@@ -19,7 +19,7 @@ type controllerState = {
     name: string,
     serial_number: number,
     slot: number,
-    time: number,
+    time: Date,
     path: Buffer,
     version: string,
     status: number,
@@ -40,7 +40,7 @@ class Controller extends ENIP {
         connection: enipConnection,
         error: enipError
         controller: controllerState,
-        subs: any,
+        subs: TagGroup,
         scanning: boolean,
         scan_rate: number,
         connectedMessaging: boolean,
@@ -232,7 +232,7 @@ class Controller extends ENIP {
             throw new Error("Invalid slot parameter type, must be either a number or a Buffer");
         }
 
-        const sessid = await super.enipConnect(IP_ADDR);
+        const sessid = await super.connect(IP_ADDR);
         if (!sessid) throw new Error("Failed to Register Session with Controller");
         
         this._initializeControllerEventHandlers(); // Connect sendRRData Event
@@ -267,7 +267,7 @@ class Controller extends ENIP {
             LOGICAL.build(LOGICAL.types.AttributeID, attribute) 
         ]);
 
-        const MR = CIP.MessageRouter.build(GET_ATTRIBUTE_SINGLE, identityPath, []);
+        const MR = CIP.MessageRouter.build(GET_ATTRIBUTE_SINGLE, identityPath, Buffer.from([]));
 
         super.write_cip(MR, super.established_conn);
 
@@ -292,12 +292,11 @@ class Controller extends ENIP {
      * Run a SET_ATTRIBUTE_SINGLE on any class, instance, attribute. You have to know the size of the buffer 
      * of the data you are setting attribute to.  For attribute of a class set instance to 0x00.
      * 
-     * @param classID 
-     * @param instance 
-     * @param attribute 
-     * @param newValue
-     * @returns {Buffer}
-     * @memberof Controller
+     * @param classID - CIP Class ID
+     * @param instance - CIP Instance ID
+     * @param attribute - Attribute Number
+     * @param newValue - New value to set to as a Buffer
+     * @returns 
      */
     async setAttributeSingle(classID: number, instance: number, attribute: number, newValue: Buffer): Promise<void> {
         const { SET_ATTRIBUTE_SINGLE } = CIP.MessageRouter.services;
@@ -333,13 +332,12 @@ class Controller extends ENIP {
     /**
      * Gets file data block used for retrieving eds file from some devices
      * 
-     * @param {number} classID 
-     * @param {number} instance 
-     * @param {number} blockNum 
-     * @returns {Buffer}
-     * @memberof Controller
+     * @param classID - CIP Class ID
+     * @param instance - CIP Instance ID
+     * @param blockNum - Block Number
+     * @returns File data
      */
-    async getFileData(classID, instance, blockNum) {
+    async getFileData(classID: number, instance: number, blockNum: number): Promise<Buffer> {
         const { GET_FILE_DATA } = CIP.MessageRouter.services;
         const { LOGICAL } = CIP.EPATH.segments;
 
@@ -375,9 +373,9 @@ class Controller extends ENIP {
      * and Returns a Promise indicating a success or failure or the disconnection
      *
      * @memberof Controller
-     * @returns {Promise}
+     * @returns Promise that is resolved after disconnection
      */
-    async disconnect() {
+    async disconnect(): Promise<string> {
         if (super.established_conn === true) {
             const closeid = await this.forwardClose();
             if(!closeid) throw new Error("Failed to End Connected EIP Session with Forward Close Request");
@@ -392,10 +390,9 @@ class Controller extends ENIP {
     /**
      * Writes a forwardOpen Request and retrieves the connection ID used for
      * connected messages.
-     * @memberof Controller
-     * @returns {Promise}
+     * @returns Promise resolving to OT connection ID
      */
-    async forwardOpen() {
+    async forwardOpen(): Promise<number> {
         const { FORWARD_OPEN } = CIP.MessageRouter.services;
         const { LOGICAL } = CIP.EPATH.segments;
         const { owner, connectionType, fixedVar, priority} = CIP.ConnectionManager;
@@ -407,7 +404,7 @@ class Controller extends ENIP {
         ]);
 
         // Message Router to Embed in UCMM
-        const MR = CIP.MessageRouter.build(FORWARD_OPEN, cmPath, []);
+        const MR = CIP.MessageRouter.build(FORWARD_OPEN, cmPath, Buffer.from([]));
 
         // Create connection parameters
         const params = CIP.ConnectionManager.build_connectionParameters(owner["Exclusive"], connectionType["PointToPoint"],priority["Low"],fixedVar["Variable"],500);
@@ -469,8 +466,10 @@ class Controller extends ENIP {
     /**
      * Writes a forwardClose Request and retrieves the connection ID used for
      * connected messages.
+     * 
+     * @returns Promise resolving OT connection ID
      */
-    async forwardClose() {
+    async forwardClose(): Promise<number> {
         const { FORWARD_CLOSE } = CIP.MessageRouter.services;
         const { LOGICAL } = CIP.EPATH.segments;
 
@@ -481,7 +480,7 @@ class Controller extends ENIP {
         ]);
 
         // Message Router to Embed in UCMM
-        const MR = CIP.MessageRouter.build(FORWARD_CLOSE, cmPath, []);
+        const MR = CIP.MessageRouter.build(FORWARD_CLOSE, cmPath, Buffer.from([]));
 
         const forwardCloseData = CIP.ConnectionManager.build_forwardClose(1000 , 0x3333, 0x1337, this.state.fwd_open_serial);
 
@@ -540,20 +539,14 @@ class Controller extends ENIP {
      * Writes Ethernet/IP Data to Socket as an Unconnected Message
      * or a Transport Class 1 Datagram
      *
-     * NOTE: Cant Override Socket Write due to net.Socket.write
-     *        implementation. =[. Thus, I am spinning up a new Method to
-     *        handle it. Dont Use Enip.write, use this function instead.
-     *
-     * @override
-     * @param {buffer} data - Message Router Packet Buffer
-     * @param {boolean} [connected=false]
-     * @param {number} [timeout=10] - Timeout (sec)
-     * @param {function} [cb=null] - Callback to be Passed to Parent.Write()
-     * @memberof ENIP
+     * @param data - Message Router Packet Buffer
+     * @param connected - Use Connected Messaging
+     * @param timeout - Timeout (sec)
+     * @param cb - Callback to be Passed to Parent.Write()
      */
-    write_cip(data, connected, timeout = 10, cb = null) {
+    write_cip(data: Buffer, connected?: boolean, timeout: number = 10, cb: any = null): void {
         const { UnconnectedSend } = CIP;
-        let msg;
+        let msg: Buffer;
         if (!connected) {
             connected = super.established_conn;
         }
@@ -568,10 +561,9 @@ class Controller extends ENIP {
     /**
      * Reads Controller Identity Object
      *
-     * @memberof Controller
-     * @returns {Promise}
+     * @returns Promise resolved when completed reading and storing controller properties
      */
-    async readControllerProps() {
+    async readControllerProps(): Promise<void> {
         const { GET_ATTRIBUTE_ALL } = CIP.MessageRouter.services;
         const { LOGICAL } = CIP.EPATH.segments;
 
@@ -582,7 +574,7 @@ class Controller extends ENIP {
         ]);
 
         // Message Router to Embed in UCMM
-        const MR = CIP.MessageRouter.build(GET_ATTRIBUTE_ALL, identityPath, []);
+        const MR = CIP.MessageRouter.build(GET_ATTRIBUTE_ALL, identityPath, Buffer.from([]));
 
         this.write_cip(MR);
 
@@ -632,12 +624,11 @@ class Controller extends ENIP {
     }
 
     /**
-     * Reads the Controller Wall Clock Object
+     * Reads the Controller Wall Clock Object (L8 Named Controllers Only)
      *
-     * @memberof Controller
-     * @returns {Promise}
+     * @returns Promise resolved when completed reading wall clock
      */
-    async readWallClock() {
+    async readWallClock(): Promise<void> {
         if (this.state.controller.name.search("L8") === -1)
             throw new Error("WallClock Utilities are not supported by this controller type");
 
@@ -652,7 +643,7 @@ class Controller extends ENIP {
         ]);
 
         // Message Router to Embed in UCMM
-        const MR = CIP.MessageRouter.build(GET_ATTRIBUTE_SINGLE, identityPath, []);
+        const MR = CIP.MessageRouter.build(GET_ATTRIBUTE_SINGLE, identityPath, Buffer.from([]));
 
         this.write_cip(MR);
 
@@ -682,18 +673,17 @@ class Controller extends ENIP {
         wallClockArray[6] = Math.trunc(wallClockArray[6] / 1000); // convert to ms from us
         wallClockArray[1] -= 1; // month is 0-based
 
-        const date = new Date(...wallClockArray);
+        const date = new Date(wallClockArray[0], wallClockArray[1],wallClockArray[2],wallClockArray[3],wallClockArray[4],wallClockArray[5],wallClockArray[6]);
         this.state.controller.time = date;
     }
 
     /**
      * Write to PLC Wall Clock
      *
-     * @param {Date} [date=new Date()]
-     * @memberof Controller
-     * @returns {Promise}
+     * @param date - Date Object
+     * @returns Promise resolved after writing new Date to controller
      */
-    async writeWallClock(date = new Date()) {
+    async writeWallClock(date: Date = new Date()): Promise<void> {
         if (this.state.controller.name.search("L8") === -1)
             throw new Error("WallClock Utilities are not supported by this controller type");
 
@@ -748,12 +738,11 @@ class Controller extends ENIP {
     /**
      * Reads Value of Tag and Type from Controller
      *
-     * @param {Tag} tag - Tag Object to Write
-     * @param {number} [size=null]
-     * @returns {Promise}
-     * @memberof Controller
+     * @param tag - Tag Object to Write
+     * @param size - Size used for writing array
+     * @returns Promise resolved after read completed
      */
-    readTag(tag, size = null) {
+    readTag(tag: Tag | Structure, size = null): Promise<void> {
         return this.workers.read.schedule(this._readTag.bind(this), [tag, size], {
             priority: 1,
             timestamp: new Date()
@@ -763,14 +752,14 @@ class Controller extends ENIP {
     /**
      * Writes value to Tag
      *
-     * @param {Tag} tag - Tag Object to Write
-     * @param {number|boolean|object|string} [value=null] - If Omitted, Tag.value will be used
-     * @param {number} [size=0x01]
-     * @returns {Promise}
-     * @memberof Controller
+     * @param tag - Tag Object to Write
+     * @param value - If Omitted, Tag.value will be used
+     * @param size - Used for writing arrays
+     * @returns Promise resolved after complete writing
      */
-    writeTag(tag, value = null, size = 0x01) {
-        if(tag.writeObjToValue) { tag.writeObjToValue(); }
+    writeTag(tag: Tag | Structure, value = null, size = 0x01) {
+
+        if(tag instanceof Structure) { tag.writeObjToValue(); }
         return this.workers.write.schedule(this._writeTag.bind(this), [tag, value, size], {
             priority: 1,
             timestamp: new Date()
@@ -780,11 +769,10 @@ class Controller extends ENIP {
     /**
      * Reads All Tags in the Passed Tag Group
      *
-     * @param {TagGroup} group
-     * @returns {Promise}
-     * @memberof Controller
+     * @param group - Tag Group instance
+     * @returns Promise resolved on completion of reading group
      */
-    readTagGroup(group) {
+    readTagGroup(group: TagGroup): Promise<void> {
         return this.workers.group.schedule(this._readTagGroup.bind(this), [group], {
             priority: 1,
             timestamp: new Date()
@@ -794,11 +782,10 @@ class Controller extends ENIP {
     /**
      * Writes to Tag Group Tags
      *
-     * @param {TAgGroup} group
-     * @returns {Promise}
-     * @memberof Controller
+     * @param group - Tag Group instance
+     * @returns Promise resolved after reading tag group
      */
-    writeTagGroup(group) {
+    writeTagGroup(group: TagGroup): Promise<void> {
         return this.workers.group.schedule(this._writeTagGroup.bind(this), [group], {
             priority: 1,
             timestamp: new Date()
@@ -808,19 +795,18 @@ class Controller extends ENIP {
     /**
      * Adds Tag to Subscription Group
      *
-     * @param {Tagany} tag
-     * @memberof Controller
+     * @param tag - Tag instance
      */
-    subscribe(tag) {
+    subscribe(tag: Tag | Structure): void {
         this.state.subs.add(tag);
     }
 
     /**
      * Begin Scanning Subscription Group
      *
-     * @memberof Controller
+     * @returns Promise resolved after scanning state goes to false
      */
-    async scan() {
+    async scan(): Promise<void> {
         this.state.scanning = true;
 
         while (this.state.scanning) {
@@ -851,23 +837,27 @@ class Controller extends ENIP {
     /**
      * Pauses Scanning of Subscription Group
      *
-     * @memberof Controller
      */
-    pauseScan() {
+    pauseScan(): void {
         this.state.scanning = false;
     }
 
     /**
      * Iterates of each tag in Subscription Group
      *
-     * @param {function} callback
-     * @memberof Controller
+     * @param callback - Call back function with a Tag instance as a parameter
      */
-    forEach(callback) {
+    forEach(callback: (tag: Tag | Structure) => {}): void {
         this.state.subs.forEach(callback);
     }
 
-    async getControllerTagList(tagList, program = null) {
+    /**
+     * 
+     * @param tagList - Tag list instance to store tagnames from PLC
+     * @param program - Program name
+     * @returns Promise resolved when completed
+     */
+    async getControllerTagList(tagList: TagList, program: string = null): Promise<void> {
         const getTagListErr = new Error("TIMEOUT occurred while reading tag list");
         // Wait for Response
         return await promiseTimeout(
@@ -882,9 +872,8 @@ class Controller extends ENIP {
     /**
      * Initialized Controller Specific Event Handlers
      *
-     * @memberof Controller
      */
-    _initializeControllerEventHandlers() {
+    _initializeControllerEventHandlers(): void {
         this.on("SendRRData Received", this._handleSendRRDataReceived);
         this.on("SendUnitData Received", this._handleSendUnitDataReceived);
     }
@@ -892,9 +881,8 @@ class Controller extends ENIP {
     /**
      * Remove Controller Specific Event Handlers
      *
-     * @memberof Controller
      */
-    _removeControllerEventHandlers() {
+    _removeControllerEventHandlers(): void {
         this.removeAllListeners("SendRRData Received");
         this.removeAllListeners("SendUnitData Received");
     }
@@ -902,12 +890,11 @@ class Controller extends ENIP {
     /**
      * Reads Value of Tag and Type from Controller
      *
-     * @param {Tag} tag - Tag Object to Write
-     * @param {number} [size=null]
-     * @returns {Promise}
-     * @memberof Controller
+     * @param tag - Tag Object to Write
+     * @param size - Number of tags to read used for arrays
+     * @returns Promise resolved when complete
      */
-    async _readTag(tag, size = null) {
+    async _readTag(tag: Tag | Structure, size: number = null): Promise<void> {
         const MR = tag.generateReadMessageRequest(size);
 
         this.write_cip(MR);
@@ -945,12 +932,11 @@ class Controller extends ENIP {
     /**
      * Reads Data of Tag from Controller To Big To Fit In One Packet
      *
-     * @param {Tag} tag - Tag Object to Write
-     * @param {number} [size=null]
-     * @returns {Promise}
-     * @memberof Controller
+     * @param tag - Tag Object to Write
+     * @param size - Number of tags to read used for arrays
+     * @returns Promise resolved when complete
      */
-    async _readTagFragmented(tag, size = null) {
+    async _readTagFragmented(tag: Tag | Structure, size: number = null): Promise<void> {
         
         let offset = 0;
         let MR = tag.generateReadMessageRequestFrag(offset, size);
@@ -998,14 +984,13 @@ class Controller extends ENIP {
     /**
      * Writes value to Tag
      *
-     * @param {Tag} tag - Tag Object to Write
-     * @param {number|boolean|object|string} [value=null] - If Omitted, Tag.value will be used
-     * @param {number} [size=0x01]
-     * @returns {Promise}
-     * @memberof Controller
+     * @param tag - Tag Object to Write
+     * @param value - If Omitted, Tag.value will be used
+     * @param size - Number of tags to read used for arrays
+     * @returns Promise resolved when complete
      */
-    async _writeTag(tag, value = null, size = 0x01) {
-        if (tag.state.tag.value.length > (480 - tag.path.length))
+    async _writeTag(tag: Tag | Structure, value: any = null, size: number = 0x01): Promise<void> {
+        if (tag.state.tag.value.length > (480 - tag.path.length) && (tag instanceof Structure))
             return this._writeTagFragmented(tag, value, size);
 
         const MR = tag.generateWriteMessageRequest(value, size);
@@ -1046,13 +1031,12 @@ class Controller extends ENIP {
     /**
      * Writes value to Tag To Big To Fit In One Packet
      *
-     * @param {Tag} tag - Tag Object to Write
-     * @param {number|boolean|object|string} [value=null] - If Omitted, Tag.value will be used
-     * @param {number} [size=0x01]
-     * @returns {Promise}
-     * @memberof Controller
+     * @param tag - Tag Object to Write. Used only for Structures.
+     * @param value - If Omitted, Tag.value will be used
+     * @param size - Number of tags to read used for arrays
+     * @returns Promise resolved when complete
      */
-    async _writeTagFragmented(tag, value = null, size = 0x01) {
+    async _writeTagFragmented(tag: Structure, value: any = null, size: number = 0x01): Promise<void> {
         if(value) tag.value = value;
         let offset = 0;
         const maxPacket = 480 - tag.path.length;
@@ -1092,11 +1076,10 @@ class Controller extends ENIP {
     /**
      * Reads All Tags in the Passed Tag Group
      *
-     * @param {TagGroup} group
-     * @returns {Promise}
-     * @memberof Controller
+     * @param group - Tag group instance
+     * @returns Promise resolved when complete
      */
-    async _readTagGroup(group) {
+    async _readTagGroup(group: TagGroup): Promise<void> {
         const messages = group.generateReadMessageRequests();
 
         const readTagGroupErr = new Error("TIMEOUT occurred while writing Reading Tag Group.");
@@ -1132,11 +1115,10 @@ class Controller extends ENIP {
     /**
      * Writes to Tag Group Tags
      *
-     * @param {TagGroup} group
-     * @returns {Promise}
-     * @memberof Controller
+     * @param group - Tag Group instance
+     * @returns Promise resolved when complete
      */
-    async _writeTagGroup(group) {
+    async _writeTagGroup(group: TagGroup): Promise<void> {
         const messages = group.generateWriteMessageRequests();
 
         const writeTagGroupErr = new Error("TIMEOUT occurred while Writing Tag Group.");
@@ -1197,10 +1179,9 @@ class Controller extends ENIP {
      * Handles SendRRData Event Emmitted by Parent and Routes
      * incoming Message
      *
-     * @param {Array} srrd - Array of Common Packet Formatted Objects
-     * @memberof Controller
+     * @param srrd - Array of Common Packet Formatted Objects
      */
-    _handleSendRRDataReceived(srrd) {
+    _handleSendRRDataReceived(srrd: CommonPacketData[]): void {
         const { service, generalStatusCode, extendedStatus, data } = CIP.MessageRouter.parse(
             srrd[1].data
         );
@@ -1332,8 +1313,14 @@ class Controller extends ENIP {
         /* eslint-enable indent */
     }
 
-    _handleSendUnitDataReceived(sud) {
-        let sudnew = sud[1].data.slice(2); // First 2 bytes are Connection sequence number
+    /**
+     * Handles SendUnitData Event Emmitted by Parent and Routes
+     * incoming Message
+     *
+     * @param sud - Array of Common Packet Formatted Objects
+     */
+    _handleSendUnitDataReceived(sud: CommonPacketData[]) {
+        let sudnew = sud[1].data.subarray(2); // First 2 bytes are Connection sequence number
         const { service, generalStatusCode, extendedStatus, data } = CIP.MessageRouter.parse(
             sudnew
         );
@@ -1465,21 +1452,33 @@ class Controller extends ENIP {
         /* eslint-enable indent */        
     }
 
-    // _handleSessionRegistrationFailed(error) {
-    //     // TODO: Implement Handler if Necessary
-    // }
     // endregion
 
-
-    get tagList() {
+    /**
+     * Get tag list tags that are not reserved tags
+     * 
+     * @returns Array of tag list items
+     */
+    get tagList(): tagListTag[] {
         return this.state.tagList.tags.filter(tag => (!tag.type.reserved));
     }
 
-    get templateList() {
+    /**
+     * Get tag list templates
+     * 
+     * @returns List of templates indexed by tag name hash
+     */
+    get templateList(): tagListTemplates {
         return this.state.tagList.templates;
     }
 
-    async getTagArraySize(tag) {
+    /**
+     * Gets an arrays size (Not optimized)
+     * 
+     * @param tag - Tag instance
+     * @returns 
+     */
+    async getTagArraySize(tag: Tag | Structure) {
         let i = 1;
         do {
             tag.state.read_size = i;
@@ -1490,7 +1489,17 @@ class Controller extends ENIP {
         return tag.state.read_size;
     }
 
-    newTag(tagname, program = null, subscribe = true, arrayDims = 0, arraySize = 0x01) {
+    /**
+     * Helper function to add new tag to PLC tag group
+     * 
+     * @param tagname - Tag or Structure name 
+     * @param program - PLC program name. null = Controller scope
+     * @param subscribe - enable read and write when scanning
+     * @param arrayDims - array dimension number
+     * @param arraySize - array size
+     * @returns tag or structure instance
+     */
+    newTag(tagname: string, program: string = null, subscribe: boolean = true, arrayDims: number = 0, arraySize: number = 0x01): Tag | Structure {
         let template = this.state.tagList.getTemplateByTag(tagname, program); 
         let tag = null;
         if (template) {
@@ -1506,8 +1515,14 @@ class Controller extends ENIP {
         }
     }
 
-    getTagByName(name) {
-        return Object.values(this.state.subs.state.tags).find(({state}) => state.tag.name === name); 
+    /**
+     * Get tag or structure instance by name
+     * 
+     * @param name 
+     * @returns 
+     */
+    getTagByName(name: string): Tag | Structure {
+        return Object.values(this.state.subs.state.tags).find((tag) => tag.state.tag.name === name); 
     }
 }
 

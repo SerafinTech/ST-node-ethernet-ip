@@ -316,3 +316,4 @@ class TagList {
 }
 
 export default TagList;
+export {tagListTag, tagListTemplates, tagListTagType}

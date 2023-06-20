@@ -357,5 +357,7 @@ export {
     registerSession,
     unregisterSession,
     sendRRData,
-    sendUnitData
+    sendUnitData,
+    EncapsulationData,
+    CommonPacketData
 };
