@@ -1,7 +1,34 @@
 import { CIP } from "../enip";
 import { Template } from "../structure";
+import type Controller from '../controller'
+
+type tagListTagType = {
+    code: number,
+    sintPos: number,
+    typeName: string,
+    structure: boolean,
+    arrayDims: number,
+    reserved: boolean
+}
+
+type tagListTag = {
+    id: number,
+    name: string,
+    type: tagListTagType,
+    program: string
+}
+
+type tagListTemplates = {
+    [index: string]: Template;
+}
 
 class TagList {
+    tags: tagListTag[];
+    templates: tagListTemplates;
+
+    /**
+     * TagList Class for retrieving a list of all tags on a PLC
+     */
     constructor () {
         this.tags = [];
         this.templates = {};
@@ -10,11 +37,11 @@ class TagList {
     /**
      * Generates the CIP message to request a list of tags
      *
-     * @param {number} [instanceID = 0] - instance id to start getting a list of object tags
-     * @param {string} program - (optional) name of the program to search 
-     * @returns {buffer}
+     * @param instanceID- instance id to start getting a list of object tags
+     * @param program - (optional) name of the program to search 
+     * @returns message to be sent to PLC
      */
-    _generateListMessageRequest(instanceID = 0, program) {
+    _generateListMessageRequest(instanceID: number = 0, program?: string) {
 
         const { LOGICAL, DATA } = CIP.EPATH.segments;
 
@@ -39,12 +66,12 @@ class TagList {
     /**
      * Parse CIP response into tag data
      *
-     * @param {buffer} data - Buffer data to parse
-     * @param {string} program - (optional) name of the program tag is from (optional)
-     * @returns {number} Last instance id parsed
+     * @param data - Buffer data to parse
+     * @param program - (optional) name of the program tag is from (optional)
+     * @returns Last instance id parsed
      */
-    _parseAttributeListResponse(data, program) {
-        let instanceID;
+    _parseAttributeListResponse(data: Buffer, program?: string): number {
+        let instanceID: number;
         let pointer = 0;
 
         while (pointer < data.length) {
@@ -80,6 +107,9 @@ class TagList {
         return instanceID; // Return last instance id
     }
 
+    /**
+     * Get and store tag type name from code for all tags
+     */
     _getTagTypeNames () {
         for (const tag of this.tags) {
             tag.type.typeName = CIP.DataTypes.getTypeCodeString(tag.type.code);
@@ -89,7 +119,12 @@ class TagList {
         }
     }
 
-    _parseTagType(tagType) {
+    /**
+     * 
+     * @param tagType - tag type numerical value
+     * @returns tag list type object
+     */
+    _parseTagType(tagType: number): tagListTagType {
 
         let typeCode = null;
         let sintPos = null;
@@ -117,11 +152,11 @@ class TagList {
     /**
      * Parse CIP response into tag data
      *
-     * @param {node-ethernet-ip.Controller} PLC - Controller to get tags from
-     * @param {string} [program = null] - (optional) name of the program tag is from (optional)
-     * @returns {Promise}
+     * @param PLC - Controller to get tags from
+     * @param program - (optional) name of the program tag is from (optional)
+     * @returns Promise resolves taglist array
      */
-    getControllerTags(PLC, program = null) {
+    getControllerTags(PLC: Controller, program: string = null): Promise<tagListTag[]> {
         return new Promise( (resolve, reject) => {
 
             const getListAt = (instanceID = 0) => { // Create function that we can call back in recursion
@@ -188,19 +223,32 @@ class TagList {
     /**
      * Gets Controller Program Names
      * 
-     * @returns {array[string]}
+     * @returns array of program names
      */
-    get programs() {
+    get programs(): string[] {
         return this.tags.filter(tag => tag.name.slice(0, 8) === "Program:").map(tag => {
-            return tag.name.slice(8, tag.length);
+            return tag.name.slice(8, tag.name.length);
         });
     }
 
-    getTag(tagName, program = null) {
+    /**
+     * Gets tag info from tag name and program name
+     * 
+     * @param tagName 
+     * @param program 
+     * @returns 
+     */
+    getTag(tagName: string, program: string = null): tagListTag {
         return this.tags.find(tag => tag.name === tagName && tag.program === program);
     }
 
-    getTemplateByTag(tagName, program = null) {        
+    /**
+     * 
+     * @param tagName 
+     * @param program 
+     * @returns tag template or null if none
+     */
+    getTemplateByTag(tagName: string, program: string = null): Template {        
         const tagArray = tagName.split(".");
         const tag = this.tags.find(tag => tag.name.toLowerCase().replace(/\[.*/, "") === tagArray[0].toLowerCase().replace(/\[.*/, "") && String(tag.program).toLowerCase() === String(program).toLowerCase());
 
@@ -223,7 +271,14 @@ class TagList {
         }
         
     }
-    _getAllTemplates (PLC) {
+
+    /**
+     * Get all templates from a PLC
+     * 
+     * @param PLC 
+     * @returns Promise that resolves after all templates are retrieved from PLC
+     */
+    _getAllTemplates (PLC: Controller): Promise<void> {
         return new Promise (async (resolve, reject) => {
             for (const tag of this.tags) {
                 if (tag.type.structure && !this.templates[tag.type.code]) {

@@ -273,4 +273,4 @@ class TagGroup extends EventEmitter {
     // endregion
 }
 
-module.exports = TagGroup;
+export default TagGroup;

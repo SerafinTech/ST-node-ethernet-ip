@@ -401,4 +401,4 @@ class ENIP extends Socket {
     // endregion
 }
 
-export { ENIP, CIP, encapsulation };
+export { ENIP, CIP, encapsulation, enipConnection, enipSession, enipError, enipTCP};

@@ -1,27 +1,69 @@
-const { ENIP, CIP } = require("../enip");
-const dateFormat = require("dateformat");
-const TagGroup = require("../tag-group");
-const { delay, promiseTimeout } = require("../utilities");
-const TagList = require("../tag-list");
-const {Structure} = require("../structure");
-const Queue = require("task-easy");
-const Tag = require("../tag");
+import { CIP } from "../enip";
+import {ENIP, enipConnection, enipError, enipTCP, enipSession} from "../enip";
+import dateFormat from "dateformat";
+import TagGroup from "../tag-group";
+import { delay, promiseTimeout } from "../utilities";
+import TagList from "../tag-list";
+import { Structure } from "../structure";
+import Queue from "task-easy";
+import Tag from "../tag";
+import { SocketConnectOpts } from "net";
 
-const compare = (obj1, obj2) => {
+const compare = (obj1: any, obj2: any) => {
     if (obj1.priority > obj2.priority) return true;
     else if (obj1.priority < obj2.priority) return false;
     else return obj1.timestamp.getTime() < obj2.timestamp.getTime();
 };
 
-class Controller extends ENIP {
+type controllerState = {
+    name: string,
+    serial_number: number,
+    slot: number,
+    time: number,
+    path: Buffer,
+    version: string,
+    status: number,
+    run: boolean,
+    program: boolean,
+    faulted: boolean,
+    minorRecoverableFault: boolean,
+    minorUnrecoverableFault: boolean,
+    majorRecoverableFault: boolean,
+    majorUnrecoverableFault: boolean,
+    io_faulted: boolean
+}
 
+class Controller extends ENIP {
+    state: {
+        TCP: enipTCP,
+        session: enipSession,
+        connection: enipConnection,
+        error: enipError
+        controller: controllerState,
+        subs: any,
+        scanning: boolean,
+        scan_rate: number,
+        connectedMessaging: boolean,
+        timeout_sp: number,
+        rpi: number,
+        fwd_open_serial: number,
+        unconnectedSendTimeout: number,
+        tagList: TagList,
+    }
+
+    workers: {
+        read: any;
+        write: any;
+        group: any;
+    }
     /**
+     * PLC Controller class
      * 
-     * @param {boolean} [connectedMessaging=true] whether to use connected or unconnected messaging
-     * @param {object} [opts]
-     * @param {number} [opts.unconnectedSendTimeout=2000]
+     * @param connectedMessaging whether to use connected or unconnected messaging
+     * @param opts future options
+     * @param opts.unconnectedSendTimeout unconnected send timeout option
      */
-    constructor(connectedMessaging = true, opts = {}) {
+    constructor(connectedMessaging: boolean = true, opts: any = {}) {
         super();
 
         this.state = {
@@ -43,7 +85,7 @@ class Controller extends ENIP {
                 majorUnrecoverableFault: false,
                 io_faulted: false
             },
-            subs: new TagGroup(compare),
+            subs: new TagGroup(),
             scanning: false,
             scan_rate: 200, //ms,
             connectedMessaging,
@@ -65,19 +107,17 @@ class Controller extends ENIP {
     /**
      * Returns the Scan Rate of Subscription Tags
      *
-     * @memberof Controller
-     * @returns {number} ms
+     * @returns scan rate in ms
      */
-    get scan_rate() {
+    get scan_rate(): number {
         return this.state.scan_rate;
     }
 
     /**
      * Sets the Subsciption Group Scan Rate
      *
-     * @memberof Controller
      */
-    set scan_rate(rate) {
+    set scan_rate(rate: number) {
         if (typeof rate !== "number") throw new Error("scan_rate must be of Type <number>");
         this.state.scan_rate = Math.trunc(rate);
     }
@@ -85,19 +125,17 @@ class Controller extends ENIP {
     /**
      * Returns the Timeout Setpoint
      *
-     * @memberof Controller
-     * @returns {number} ms
+     * @returns Timeout setpoint in ms
      */
-    get timeout_sp() {
+    get timeout_sp(): number {
         return this.state.timeout_sp;
     }
 
     /**
      * Sets the Timeout Setpoint
      *
-     * @memberof Controller
      */
-    set timeout_sp(sp) {
+    set timeout_sp(sp: number) {
         if (typeof sp !== "number") throw new Error("timeout_sp must be of Type <number>");
         this.state.timeout_sp = Math.trunc(sp);
     }
@@ -105,8 +143,7 @@ class Controller extends ENIP {
     /**
      * Returns the Rpi
      *
-     * @memberof Controller
-     * @returns {number} ms
+     * @returns rpi setpoint in ms
      */
     get rpi() {
         return this.state.rpi;
@@ -115,9 +152,8 @@ class Controller extends ENIP {
     /**
      * Sets the Rpi
      *
-     * @memberof Controller
      */
-    set rpi(sp) {
+    set rpi(sp: number) {
         if (typeof sp !== "number") throw new Error("Rpi must be of Type <number>");
         if (sp < 8) throw new Error("Rpi a minimum of 8ms");
         this.state.rpi = Math.trunc(sp);
@@ -126,29 +162,26 @@ class Controller extends ENIP {
     /**
      * Get the status of Scan Group
      *
-     * @readonly
-     * @memberof Controller
+     * @returns true or false
      */
-    get scanning() {
+    get scanning(): boolean {
         return this.state.scanning;
     }
 
     /**
      * Returns the connected / unconnected messaging mode
      *
-     * @memberof Controller
-     * @returns {boolean} true, if connected messaging; false, if unconnected messaging
+     * @returns true, if connected messaging; false, if unconnected messaging
      */
-    get connectedMessaging() {
+    get connectedMessaging(): boolean {
         return this.state.connectedMessaging;
     }
 
     /**
      * Sets the Mode to connected / unconnected messaging
      *
-     * @memberof Controller
      */
-    set connectedMessaging(conn) {
+    set connectedMessaging(conn: boolean) {
         if (typeof conn !== "boolean") throw new Error("connectedMessaging must be of type <boolean>");
         this.state.connectedMessaging= conn;
     }
@@ -158,9 +191,9 @@ class Controller extends ENIP {
      *
      * @readonly
      * @memberof Controller
-     * @returns {object}
+     * @returns Controller properties object
      */
-    get properties() {
+    get properties(): controllerState {
         return this.state.controller;
     }
 
@@ -169,25 +202,24 @@ class Controller extends ENIP {
      * in human readable form
      *
      * @readonly
-     * @memberof Controller
      */
-    get time() {
+    get time(): string {
         return dateFormat(this.state.controller.time, "mmmm dd, yyyy - hh:MM:ss TT");
     }
     // endregion
 
     // region Public Method Definitions
+
+    connect(port: unknown, host?: unknown, connectionListener?: unknown): any
     /**
      * Initializes Session with Desired IP Address
      * and Returns a Promise with the Established Session ID
      *
-     * @override
-     * @param {string} IP_ADDR - IPv4 Address (can also accept a FQDN, provided port forwarding is configured correctly.)
-     * @param {number|Buffer} SLOT - Controller Slot Number (0 if CompactLogix), or a Buffer representing the whole routing path
-     * @returns {Promise}
-     * @memberof ENIP
+     * @param IP_ADDR - IPv4 Address (can also accept a FQDN, provided port forwarding is configured correctly.)
+     * @param SLOT - Controller Slot Number (0 if CompactLogix), or a Buffer representing the whole routing path
+     * @returns Promise that resolves after connection
      */
-    async connect(IP_ADDR, SLOT = 0, SETUP = true) {
+    async connect(IP_ADDR: string, SLOT: number = 0, SETUP: boolean = true): Promise<void> {
         const { PORT } = CIP.EPATH.segments;
         const BACKPLANE = 1;
 
@@ -200,7 +232,7 @@ class Controller extends ENIP {
             throw new Error("Invalid slot parameter type, must be either a number or a Buffer");
         }
 
-        const sessid = await super.connect(IP_ADDR);
+        const sessid = await super.enipConnect(IP_ADDR);
         if (!sessid) throw new Error("Failed to Register Session with Controller");
         
         this._initializeControllerEventHandlers(); // Connect sendRRData Event
@@ -220,13 +252,12 @@ class Controller extends ENIP {
      * Run a GET_ATTRIBUTE_SINGLE on any class, instance, attribute.
      * For attribute of a class set instance to 0x00.
      * 
-     * @param {number} classID 
-     * @param {number} instance 
-     * @param {number} attribute 
-     * @returns {Buffer}
-     * @memberof Controller
+     * @param classID 
+     * @param instance 
+     * @param attribute 
+     * @returns attribute buffer
      */
-    async getAttributeSingle(classID, instance, attribute) {
+    async getAttributeSingle(classID: number, instance: number, attribute: number): Promise<Buffer> {
         const { GET_ATTRIBUTE_SINGLE } = CIP.MessageRouter.services;
         const { LOGICAL } = CIP.EPATH.segments;
        
@@ -261,14 +292,14 @@ class Controller extends ENIP {
      * Run a SET_ATTRIBUTE_SINGLE on any class, instance, attribute. You have to know the size of the buffer 
      * of the data you are setting attribute to.  For attribute of a class set instance to 0x00.
      * 
-     * @param {number} classID 
-     * @param {number} instance 
-     * @param {number} attribute 
-     * @param {buffer} newValue
+     * @param classID 
+     * @param instance 
+     * @param attribute 
+     * @param newValue
      * @returns {Buffer}
      * @memberof Controller
      */
-    async setAttributeSingle(classID, instance, attribute, newValue) {
+    async setAttributeSingle(classID: number, instance: number, attribute: number, newValue: Buffer): Promise<void> {
         const { SET_ATTRIBUTE_SINGLE } = CIP.MessageRouter.services;
         const { LOGICAL } = CIP.EPATH.segments;
 
@@ -1484,4 +1515,4 @@ function getRandomInt(max) {
     return Math.floor(Math.random() * Math.floor(max));
 }
 
-module.exports = Controller;
+export default Controller;
