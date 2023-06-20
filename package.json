@@ -49,6 +49,5 @@
     "repository": {
         "type": "git",
         "url": "https://github.com/SerafinTech/ST-node-ethernet-ip"
-    },
-    "types": "./dist/index.js"
+    }
 }

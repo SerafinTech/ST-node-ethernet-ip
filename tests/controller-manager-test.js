@@ -40,7 +40,14 @@ c.on('Connected', (thisCont) => {
                     console.log('Tag Write => ', tg.name, tagTest.newValue)
                     tag.value = tagTest.newValue
                 }, 1000)
-            }    
+            }
+            console.log(cm.getAllValues())   
         })
     })
+    
 })
+
+c.on('Disconnected', () => {
+    console.log('Disconnected')
+})
+

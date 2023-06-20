@@ -1,11 +1,12 @@
 {
-  "include": ["src/**/*"],
   "compilerOptions": {
-    "lib": ["es2020"],
     "module": "commonjs",
-    "target": "es2019",
-    "allowJs": true,
-    "outDir": "./built",
-    "esModuleInterop": true
-  }
+    "esModuleInterop": true,
+    "target": "ES2021",
+    "moduleResolution": "node",
+    "outDir": "built",
+    "allowJs": true
+  },
+  "include": ["src/**/*"],
+  "ignore":["node_modules"]
 }

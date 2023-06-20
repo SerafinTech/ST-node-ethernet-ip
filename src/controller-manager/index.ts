@@ -1,8 +1,12 @@
-const net = require("net");
-const Controller = require("../controller");
-const { EventEmitter } = require("events");
+import net from "net";
+import Controller from "../controller";
+import { EventEmitter } from "events";
 
 class ControllerManager extends EventEmitter {
+    controllers: extController[]
+    /**
+     * Controller Manager manages PLC connections and tags.  Automatically scans and writes tags that have values changed. Reconnects automatically.
+     */
     constructor() {
         super();
         this.controllers = [];
@@ -29,6 +33,16 @@ class ControllerManager extends EventEmitter {
 }
 
 class extController extends EventEmitter{
+    reconnect: boolean;
+    ipAddress: string;
+    slot: number;
+    opts: any;
+    rpi: any;
+    PLC: Controller;
+    tags: any[];
+    connected: boolean;
+    conncom: any;
+    retryTimeSP: number;
     constructor(ipAddress, slot = 0, rpi = 100, connCom = true, retrySP = 3000, opts = {}) {
         super();
         this.reconnect = true;
@@ -102,7 +116,7 @@ class extController extends EventEmitter{
     }
 
     disconnect() {
-        return new Promise((resolve) => {
+        return new Promise<void>((resolve) => {
             this.connected = false;
             this.reconnect = false;
             this.PLC.disconnect().then(() => {
@@ -118,4 +132,4 @@ class extController extends EventEmitter{
 
 }
 
-module.exports = ControllerManager;
+export default ControllerManager;
