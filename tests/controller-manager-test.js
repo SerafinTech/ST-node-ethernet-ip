@@ -44,3 +44,13 @@ c.on('Connected', (thisCont) => {
         })
     })
 })
+
+setInterval(() => {
+    if (c.connected) {
+        console.log(cm.getAllValues())
+    }
+}, 5000)
+
+c.on('Disconnected', () => {
+    console.log('Disconnected')
+})

@@ -49,7 +49,7 @@ class extController extends EventEmitter{
         this.PLC.rpi = this.rpi;
         this.PLC.connect(this.ipAddress, this.slot).then(async () => {
             this.connected = true;
-            this.emit("Connected", this);
+            
             this.PLC.scan_rate = this.rpi;
       
             this.tags.forEach(tag => {
@@ -57,9 +57,8 @@ class extController extends EventEmitter{
                 this.addTagEvents(tag.tag);
             });
 
-            this.PLC.scan()
-                .catch(e => {this.errorHandle(e);});
-      
+            this.PLC.scan().catch(e => {this.errorHandle(e);});
+            this.emit("Connected", this);
       
         }).catch(e => {this.errorHandle(e);});
     }
@@ -86,19 +85,26 @@ class extController extends EventEmitter{
     }
   
     addTag(tagname, program = null, arrayDims = 0, arraySize = 0x01) {
-        let tag = null;
-        if (this.connected) {
-            tag = this.PLC.newTag(tagname, program, true, arrayDims, arraySize);
-            this.addTagEvents(tag);
-        }
-        this.tags.push({
-            tagname: tagname,
-            program: program,
-            arrayDims: arrayDims,
-            arraySize: arraySize,
-            tag: tag
-        });
-        return tag;
+        let tagItem = this.tags.find(tag => {
+         return tag.tagname === tagname && tag.program === program;
+        })
+        if (tagItem) {
+            return tagItem.tag
+        } else {
+            let tag;
+            if (this.connected) {
+                tag = this.PLC.newTag(tagname, program, true, arrayDims, arraySize);
+                this.addTagEvents(tag);
+            }
+            this.tags.push({
+                tagname: tagname,
+                program: program,
+                arrayDims: arrayDims,
+                arraySize: arraySize,
+                tag: tag
+            });
+            return tag;
+        }  
     }
 
     disconnect() {
