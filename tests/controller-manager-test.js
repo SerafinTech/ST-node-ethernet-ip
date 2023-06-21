@@ -6,7 +6,7 @@ let c = cm.addController('192.168.121.10')
 
 c.connect()
 c.on('TagChanged', (tag, prevValue) => {
-    console.log(tag.name, ' changed from ', prevValue, ' => ', tag.value)
+    //console.log(tag.name, ' changed from ', prevValue, ' => ', tag.value)
 })
 
 let tagTests = [
@@ -29,25 +29,22 @@ let tagTests = [
 
 ]
 
+tagTests.forEach(tagTest => {
+    let tag = c.addTag(tagTest.name, tagTest.program, tagTest.arrayDims, tagTest.arraySize)
+})
+
 c.on('Connected', (thisCont) => {
     console.log('Connected',thisCont.ipAddress)
-    tagTests.forEach(tagTest => {
-        let tag = c.addTag(tagTest.name, tagTest.program, tagTest.arrayDims, tagTest.arraySize)
-        tag.on('Initialized', (tg) => {
-            console.log('Tag Init => ', tg.name, tg.value)
-            if(tagTest.newValue) {           
-                setTimeout(() => {
-                    console.log('Tag Write => ', tg.name, tagTest.newValue)
-                    tag.value = tagTest.newValue
-                }, 1000)
-            }
-            console.log(cm.getAllValues())   
-        })
-    })
-    
 })
 
 c.on('Disconnected', () => {
     console.log('Disconnected')
 })
+
+setInterval(() => {
+    if(c.connected) {
+        console.log(cm.getAllValues())
+    }
+    c.tags[2].tag.value = (new Date()).toString()
+}, 5000)
 

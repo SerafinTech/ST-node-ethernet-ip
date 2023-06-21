@@ -17,5 +17,5 @@
 # Test Scripts
 test*.js
 
-# Built
-/built
+# Distribution
+/dist

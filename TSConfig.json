@@ -4,7 +4,7 @@
     "esModuleInterop": true,
     "target": "ES2021",
     "moduleResolution": "node",
-    "outDir": "built",
+    "outDir": "dist",
     "allowJs": true
   },
   "include": ["src/**/*"],

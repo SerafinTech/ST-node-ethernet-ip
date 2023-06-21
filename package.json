@@ -2,7 +2,7 @@
     "name": "st-ethernet-ip",
     "version": "2.6.1",
     "description": "A simple node interface for Ethernet/IP.",
-    "main": "./built/index.js",
+    "main": "./dist/index.js",
     "scripts": {
         "test": "npm run lint && jest && npm run test:coverage && cat ./coverage/lcov.info | ./node_modules/coveralls/bin/coveralls.js",
         "test:local": "npm run lint && jest && npm run test:coverage",
