@@ -1,4 +1,4 @@
-const {ControllerManager} = require('../built/index.js')
+const {ControllerManager} = require('../dist/index.js')
 
 let cm = new ControllerManager()
 
@@ -23,8 +23,6 @@ let tagTests = [
     {
         name: 'TestUDT2[0].UDT1[0].STRING1',
         program: 'MainProgram',
-        newValue: 'Test Completed'
-
     },
 
 ]
@@ -44,7 +42,8 @@ c.on('Disconnected', () => {
 setInterval(() => {
     if(c.connected) {
         console.log(cm.getAllValues())
+        c.tags[1].tag.value[0].STRING1 = (new Date()).toString()
     }
-    c.tags[2].tag.value = (new Date()).toString()
-}, 5000)
+    
+}, 1000)
 

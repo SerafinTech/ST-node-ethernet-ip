@@ -1,6 +1,15 @@
 import net from "net";
 import Controller from "../controller";
 import { EventEmitter } from "events";
+import Tag from "../tag";
+
+type cmAllValues = {
+    [index: string]: any
+}
+
+type cmAllControllersValues = {
+    [index: string] : cmAllValues;
+}
 
 class ControllerManager extends EventEmitter {
     controllers: extController[]
@@ -12,15 +21,29 @@ class ControllerManager extends EventEmitter {
         this.controllers = [];
     }
 
-    //Add controller
-    addController(ipAddress, slot = 0, rpi = 100, connected = true, retrySP = 3000, opts = {}) {
+    /**
+     * 
+     * @param ipAddress - controller IP address
+     * @param slot - Slot number or custom path
+     * @param rpi - How often to scan tag value in ms
+     * @param connected - Use connected messaging 
+     * @param retrySP - How long to wait to retry broken connection in ms
+     * @param opts - custom options for future use
+     * @returns Extended Controller object
+     */
+    addController(ipAddress: string, slot : number | Buffer = 0, rpi: number = 100, connected: boolean = true, retrySP: number = 3000, opts: any = {}): extController {
         const contLength = this.controllers.push(new extController(ipAddress, slot, rpi, connected, retrySP, opts));
         return this.controllers[contLength - 1];
     }
 
-    //Get All Values. Changing these Values
-    getAllValues() {
-        let allTags = {};
+    
+    /**
+     * Returns all current controller tags
+     * 
+     * @returns tag values indexed by controller ip address and tag name
+     */
+    getAllValues(): cmAllControllersValues {
+        let allTags: cmAllControllersValues = {};
         this.controllers.forEach(controller => {
             let tags = {};
             controller.tags.forEach(tag => {
@@ -35,7 +58,7 @@ class ControllerManager extends EventEmitter {
 class extController extends EventEmitter{
     reconnect: boolean;
     ipAddress: string;
-    slot: number;
+    slot: number | Buffer;
     opts: any;
     rpi: any;
     PLC: Controller;
@@ -43,7 +66,18 @@ class extController extends EventEmitter{
     connected: boolean;
     conncom: any;
     retryTimeSP: number;
-    constructor(ipAddress, slot = 0, rpi = 100, connCom = true, retrySP = 3000, opts = {}) {
+
+    /**
+     * Extended Controller Class To Manage Rebuilding Tags after as disconnect / reconnect event
+     * 
+     * @param ipAddress - controller IP address
+     * @param slot - Slot number or custom path
+     * @param rpi - How often to scan tag value in ms
+     * @param connected - Use connected messaging 
+     * @param retrySP - How long to wait to retry broken connection in ms
+     * @param opts - custom options for future use
+     */
+    constructor(ipAddress: string, slot: number | Buffer = 0, rpi: number = 100, connCom: boolean = true, retrySP: number = 3000, opts: any = {}) {
         super();
         this.reconnect = true;
         this.ipAddress = ipAddress;
@@ -57,6 +91,9 @@ class extController extends EventEmitter{
         this.retryTimeSP = retrySP;
     }
 
+    /**
+     * Connect To Controller
+     */
     connect() {
         this.reconnect = true;
         this.PLC = new Controller(this.conncom);
@@ -73,10 +110,15 @@ class extController extends EventEmitter{
             this.PLC.scan().catch(e => {this.errorHandle(e);});
             this.emit("Connected", this);
       
-        }).catch(e => {this.errorHandle(e);});
+        }).catch((e: Error) => {this.errorHandle(e);});
     }
 
-    addTagEvents(tag) {
+    /**
+     * Add Tag Events to emit from controller 
+     * 
+     * @param tag 
+     */
+    addTagEvents(tag: Tag) {
         tag.on("Changed", (chTag, prevValue) => {
             this.emit("TagChanged", tag, prevValue);
         });
@@ -85,7 +127,12 @@ class extController extends EventEmitter{
         });
     }
 
-    errorHandle(e) {
+    /**
+     * Handle Controller Error during connect or while scanning
+     * 
+     * @param e - Error emitted
+     */
+    errorHandle(e: Error) {
         this.emit("Error", e);
 
         if(e.message && (e.message.slice(0,7) === "TIMEOUT" || e.message.slice(0,6) === "SOCKET")) {
@@ -96,8 +143,16 @@ class extController extends EventEmitter{
             if(this.reconnect) {setTimeout(() => {this.connect();}, this.retryTimeSP);}
         }
     }
-  
-    addTag(tagname, program = null, arrayDims = 0, arraySize = 0x01) {
+    
+    /**
+     * 
+     * @param tagname - Tag Name 
+     * @param program - Program Name
+     * @param arrayDims - Array Dimensions
+     * @param arraySize - Array Size
+     * @returns Tag object
+     */
+    addTag(tagname: string, program: string = null, arrayDims: number = 0, arraySize: number = 0x01):Tag {
         let tagItem = this.tags.find(tag => {
             return tag.tagname === tagname && tag.program === program;
         })
@@ -120,7 +175,12 @@ class extController extends EventEmitter{
         }
     }
 
-    disconnect() {
+    /**
+     * Disconnect Controller Completely
+     * 
+     * @returns Promise resolved after disconnect of controller
+     */
+    disconnect(): Promise<void> {
         return new Promise<void>((resolve) => {
             this.connected = false;
             this.reconnect = false;
