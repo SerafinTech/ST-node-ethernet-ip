@@ -9,5 +9,5 @@ import Browser from "./browser";
 import IO from "./io";
 import ControllerManager from "./controller-manager";
 
-module.exports = { Controller, Tag, TagGroup, EthernetIP, util, TagList, Structure, Browser, IO, ControllerManager};
+export { Controller, Tag, TagGroup, EthernetIP, util, TagList, Structure, Browser, IO, ControllerManager};
 
