@@ -1,10 +1,45 @@
-const EthernetIP = require("../enip"); 
-const dgram = require("dgram");
-const { EventEmitter } = require("events");
+import * as EthernetIP from "../enip"; 
+import dgram, { Socket } from "dgram";
+import { EventEmitter } from "events";
 
+const listIdentityRequest = EthernetIP.encapsulation.header.build(EthernetIP.encapsulation.commands.ListIdentity);
 
-class Browser extends EventEmitter{
-    constructor(originatorPort=51687, originatorIPaddress="0.0.0.0", autoBrowse=true, updateRate=3000, disconnectMultiplier=4) {
+type browserDevice = {
+    EncapsulationVersion: number,
+    socketAddress: {
+        sin_family: number,
+        sin_port: number,
+        sin_addr: string,
+        sin_zero: Buffer
+    },
+    vendorID: number,
+    deviceType: number,
+    productCode: number,
+    revision: string,
+    status: number,
+    serialNumber: string,
+    productName: string,
+    state: number,
+    timestamp: number
+}
+
+export declare interface Browser extends EventEmitter {
+    socket: Socket;
+    originatorIPaddress: string;
+    autoBrowse: boolean;
+    updateRate: number;
+    disconnectMultiplier: number;
+    deviceList: browserDevice[];
+    updateInterval: NodeJS.Timer;
+    on(event: 'New Device', listener: (device: browserDevice) => {}): this;
+    on(event: 'Broadcast Request', listener: () => {}): this;
+    on(event: 'Device Disconnected', listener: (device: browserDevice) => {}): this;
+    on(event: 'Device List Updated', listener: (deviceList: browserDevice[]) => {}): this;
+    on(event: string, listener: Function): this;
+}
+
+export class Browser extends EventEmitter{
+    constructor(originatorPort: number=51687, originatorIPaddress: string="0.0.0.0", autoBrowse: boolean=true, updateRate: number=3000, disconnectMultiplier: number=4) {
         super();
         this.socket = dgram.createSocket("udp4");
         this.originatorIPaddress = originatorIPaddress;
@@ -22,12 +57,9 @@ class Browser extends EventEmitter{
 
         this.updateInterval = null;
 
-        this.listIdentityRequest = EthernetIP.encapsulation.header.build(EthernetIP.encapsulation.commands.ListIdentity);
     }
 
     start() {
-
-    
         if (this.updateInterval) {
             clearInterval(this.updateInterval);
         }
@@ -38,9 +70,9 @@ class Browser extends EventEmitter{
 
         this.updateInterval = setInterval(() => {
             this.checkStatus();
-            this.socket.send(this.listIdentityRequest, 44818, "255.255.255.255", (e) => {
+            this.socket.send(listIdentityRequest, 44818, "255.255.255.255", (e) => {
                 if (e) throw e;
-                this.emit("Broadcast Request", null);
+                this.emit("Broadcast Request");
             });
         }, this.updateRate);
     }
@@ -75,7 +107,24 @@ class Browser extends EventEmitter{
 
     _parseListIdentityResponse(msg) {
 
-        let response = {};
+        let response: browserDevice = {
+            EncapsulationVersion: undefined,
+            socketAddress: {
+                sin_family: undefined,
+                sin_port: undefined,
+                sin_addr: undefined,
+                sin_zero: undefined
+            },
+            vendorID: undefined,
+            deviceType: undefined,
+            productCode: undefined,
+            revision: undefined,
+            status: undefined,
+            serialNumber: undefined,
+            productName: undefined,
+            state: undefined,
+            timestamp: undefined
+        };
 
         const messageData = EthernetIP.encapsulation.header.parse(msg);
         
@@ -91,7 +140,6 @@ class Browser extends EventEmitter{
 
                     response.EncapsulationVersion = data.readUInt16LE(ptr);
                     ptr += 2;
-                    response.socketAddress = {};
                     response.socketAddress.sin_family = data.readUInt16BE(ptr);
                     ptr += 2;
                     response.socketAddress.sin_port = data.readUInt16BE(ptr);
@@ -138,4 +186,4 @@ class Browser extends EventEmitter{
 
 }
 
-module.exports = Browser;
+export default Browser;

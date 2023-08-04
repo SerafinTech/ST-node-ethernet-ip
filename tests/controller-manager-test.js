@@ -6,9 +6,12 @@ let c = cm.addController('192.168.121.10')
 
 c.connect()
 c.on('TagChanged', (tag, prevValue) => {
-    //console.log(tag.name, ' changed from ', prevValue, ' => ', tag.value)
+    console.log(tag.name, ' changed from ', prevValue, ' => ', tag.value)
 })
 
+c.on('TagChanged', (tag) => {
+ 
+})
 let tagTests = [
     {
         name: 'TestUDT2[0]',
@@ -39,11 +42,5 @@ c.on('Disconnected', () => {
     console.log('Disconnected')
 })
 
-setInterval(() => {
-    if(c.connected) {
-        console.log(cm.getAllValues())
-        c.tags[1].tag.value[0].STRING1 = (new Date()).toString()
-    }
-    
-}, 1000)
+
 

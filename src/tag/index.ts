@@ -36,8 +36,15 @@ type tagState = {
     keepAlive: number
 };
 
-class Tag extends EventEmitter {
+export declare interface Tag extends EventEmitter {
     state: tagState;
+    on(event: string, listener: Function): this;
+    on(event: 'Changed', listener: (this: this, previousValue: any) => {}): this;
+    on(event: 'Initialized', listener: (this: this) => {}): this;
+    on(event: 'KeepAlive', listener: (this: this) => {}): this;
+}
+
+export class Tag extends EventEmitter {
     /**
      * PLC Tag Object
      * 

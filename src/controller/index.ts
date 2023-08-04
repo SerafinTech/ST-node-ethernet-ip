@@ -4,7 +4,7 @@ import dateFormat from "dateformat";
 import TagGroup from "../tag-group";
 import { delay, promiseTimeout } from "../utilities";
 import TagList, { tagListTag, tagListTemplates } from "../tag-list";
-import { Structure, Template } from "../structure";
+import { Structure } from "../structure";
 import Queue from "task-easy";
 import Tag from "../tag";
 import type {CommonPacketData} from '../enip/encapsulation'

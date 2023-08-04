@@ -1,5 +1,4 @@
 import { CIP } from "../enip";
-import { EventEmitter } from "events";
 const { LOGICAL } = CIP.EPATH.segments;
 const { MessageRouter } = CIP;
 const { MULTIPLE_SERVICE_PACKET } = MessageRouter.services;
@@ -23,14 +22,12 @@ type writeTagMessageRequests = {
     tag_ids: string[]
 }
 
-class TagGroup extends EventEmitter {
+class TagGroup {
     state: tagGroupState;
     /**
      * Tag Group Class used for reading and writing multiple tags at once
      */
-    constructor() {
-        super();
-
+    constructor() {      
         const pathBuf = Buffer.concat([
             LOGICAL.build(LOGICAL.types.ClassID, 0x02), // Message Router Class ID (0x02)
             LOGICAL.build(LOGICAL.types.InstanceID, 0x01) // Instance ID (0x01)

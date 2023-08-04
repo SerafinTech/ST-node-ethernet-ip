@@ -7,10 +7,14 @@ import { bufferToString, stringToBuffer } from "../utilities";
 import equals from "deep-equal";
 import type TagList from '../tag-list'
 
-class Structure extends Tag {
+export declare interface Structure extends Tag {
     _valueObj: any;
     _taglist: any;
     _template: Template;
+}
+
+export class Structure extends Tag {
+    
     /**
      * Structure Class to handle structure tags
      * 
@@ -454,4 +458,4 @@ class Structure extends Tag {
 
 
 
-export { Structure, Template};
+export { Template};

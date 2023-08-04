@@ -11,17 +11,17 @@ type cmAllControllersValues = {
     [index: string] : cmAllValues;
 }
 
-class ControllerManager extends EventEmitter {
+class ControllerManager{
     controllers: extController[]
     /**
      * Controller Manager manages PLC connections and tags.  Automatically scans and writes tags that have values changed. Reconnects automatically.
      */
     constructor() {
-        super();
         this.controllers = [];
     }
 
     /**
+     * Adds controller to be managed by controller manager
      * 
      * @param ipAddress - controller IP address
      * @param slot - Slot number or custom path
@@ -55,7 +55,8 @@ class ControllerManager extends EventEmitter {
     }
 }
 
-class extController extends EventEmitter{
+
+export declare interface extController {
     reconnect: boolean;
     ipAddress: string;
     slot: number | Buffer;
@@ -66,7 +67,15 @@ class extController extends EventEmitter{
     connected: boolean;
     conncom: any;
     retryTimeSP: number;
+    on(event: string, listener: Function): this;
+    on(event: 'Connected', listener: (this: this) => {}): this; 
+    on(event: 'TagChanged', listener: (tag: Tag, previousValue: any) => {}): this;
+    on(event: 'TagInit', listener: (tag: Tag) => {}): this;
+    on(event: 'Disconnected', listener: () => {}): this;
+}
 
+export class extController extends EventEmitter{
+    
     /**
      * Extended Controller Class To Manage Rebuilding Tags after as disconnect / reconnect event
      * 
@@ -145,6 +154,7 @@ class extController extends EventEmitter{
     }
     
     /**
+     * Add tag to controller scan list.
      * 
      * @param tagname - Tag Name 
      * @param program - Program Name
@@ -198,3 +208,4 @@ class extController extends EventEmitter{
 }
 
 export default ControllerManager;
+export {Tag};
