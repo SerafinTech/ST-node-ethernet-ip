@@ -210,7 +210,6 @@ class Controller extends ENIP {
 
     // region Public Method Definitions
 
-    connect(port: unknown, host?: unknown, connectionListener?: unknown): any
     /**
      * Initializes Session with Desired IP Address
      * and Returns a Promise with the Established Session ID
@@ -219,7 +218,7 @@ class Controller extends ENIP {
      * @param SLOT - Controller Slot Number (0 if CompactLogix), or a Buffer representing the whole routing path
      * @returns Promise that resolves after connection
      */
-    async connect(IP_ADDR: string, SLOT: number = 0, SETUP: boolean = true): Promise<void> {
+    async connect(IP_ADDR: string, SLOT: number | Buffer = 0, SETUP: boolean = true): Promise<void> {
         const { PORT } = CIP.EPATH.segments;
         const BACKPLANE = 1;
 
