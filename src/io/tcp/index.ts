@@ -1,8 +1,10 @@
-const { ENIP, CIP } = require("../../enip");
-const dateFormat = require("dateformat");
-const TagGroup = require("../../tag-group");
-const { promiseTimeout } = require("../../utilities");
-const Queue = require("task-easy");
+import { ENIP, CIP, enipConnection, enipError, enipTCP, enipSession } from "../../enip";
+import dateFormat from "dateformat";
+import TagGroup from "../../tag-group";
+import { promiseTimeout } from "../../utilities";
+import Queue from "task-easy";
+
+
 
 
 const compare = (obj1, obj2) => {
@@ -11,15 +13,61 @@ const compare = (obj1, obj2) => {
     else return obj1.timestamp.getTime() < obj2.timestamp.getTime();
 };
 
+type controllerState = {
+    name: string,
+    serial_number: number,
+    slot: number,
+    time: Date,
+    path: Buffer,
+    version: string,
+    status: number,
+    run: boolean,
+    program: boolean,
+    faulted: boolean,
+    minorRecoverableFault: boolean,
+    minorUnrecoverableFault: boolean,
+    majorRecoverableFault: boolean,
+    majorUnrecoverableFault: boolean,
+    io_faulted: boolean
+}
+
 class Controller extends ENIP {
-    constructor(connectedMessaging = true) {
+    OTconnectionID: number;
+    TOconnectionID: number;
+    configInstance: any;
+    outputInstance: any;
+    inputInstance: any;
+    tryingToConnect: boolean;
+
+    state: {
+        TCP: enipTCP,
+        session: enipSession,
+        connection: enipConnection,
+        error: enipError
+        controller: controllerState,
+        subs: TagGroup,
+        scanning: boolean,
+        scan_rate: number,
+        connectedMessaging: boolean,
+        timeout_sp: number,
+        rpi: number,
+        fwd_open_serial: number,
+        unconnectedSendTimeout: number,
+    }
+
+    workers: {
+        read: any;
+        write: any;
+        group: any;
+    }
+    constructor(connectedMessaging: boolean = true, configInstance: any, outputInstance: any, inputInstance: any) {
         super();
 
         this.OTconnectionID = 0;
         this.TOconnectionID = 0;
-        this.configInstance = {};
-        this.outputInstance = {};
-        this.inputInstance = {};
+        this.configInstance = configInstance;
+        this.outputInstance = outputInstance;
+        this.inputInstance = inputInstance;
         this.tryingToConnect = false;
 
         this.state = {
@@ -32,6 +80,8 @@ class Controller extends ENIP {
                 path: null,
                 version: null,
                 status: null,
+                run: false,
+                program: false,
                 faulted: false,
                 minorRecoverableFault: false,
                 minorUnrecoverableFault: false,
@@ -39,7 +89,7 @@ class Controller extends ENIP {
                 majorUnrecoverableFault: false,
                 io_faulted: false
             },
-            subs: new TagGroup(compare),
+            subs: new TagGroup(),
             scanning: false,
             scan_rate: 200, //ms,
             connectedMessaging,
@@ -161,30 +211,16 @@ class Controller extends ENIP {
     // endregion
 
     // region Public Method Definitions
+
     /**
      * Initializes Session with Desired IP Address
-     * Sends forwardOpen to IO device to initialize Ethernet/ip class 1 communication
+     * and Returns a Promise with the Established Session ID
      *
-     * @override
-     * @param {string} IP_ADDR - IPv4 Address (can also accept a FQDN, provided port forwarding is configured correctly.)
-     * @param {number|Buffer} SLOT - Controller Slot Number (0 if CompactLogix), or a Buffer representing the whole routing path
-     * @param {object} configInstance - configInstance parameters
-     * @param {number} configInstance.assembly - config assembly instance value
-     * @param {number} configInstance.size - config data size
-     * @param {object} outputInstance - outputInstance parameters
-     * @param {number} outputInstance.assembly - output assembly instance value
-     * @param {number} outputInstance.size - output data size
-     * @param {object} inputInstance - inputInstance parameters
-     * @param {number} inputInstance.assembly - input assembly instance value
-     * @param {number} inputInstance.size - config data size
-     * @returns {Promise}
-     * @memberof ENIP
+     * @param IP_ADDR - IPv4 Address (can also accept a FQDN, provided port forwarding is configured correctly.)
+     * @param SLOT - Controller Slot Number (0 if CompactLogix), or a Buffer representing the whole routing path
+     * @returns Promise that resolves after connection
      */
-    async connect(IP_ADDR, SLOT = 0, configInstance, outputInstance, inputInstance) {
-
-        this.configInstance = configInstance;
-        this.outputInstance = outputInstance;
-        this.inputInstance = inputInstance;
+    async connect(IP_ADDR: string, SLOT: number | Buffer = 0, SETUP: boolean = true): Promise<number> {
                
         const { PORT } = CIP.EPATH.segments;
         const BACKPLANE = 1;
@@ -247,7 +283,7 @@ class Controller extends ENIP {
         ]);
 
         // Message Router to Embed in UCMM
-        const MR = CIP.MessageRouter.build(FORWARD_OPEN, cmPath, []);
+        const MR = CIP.MessageRouter.build(FORWARD_OPEN, cmPath, Buffer.from([]));
 
         // Create connection parameters
         const paramsOT = CIP.ConnectionManager.build_connectionParameters(owner.Exclusive, connectionType.PointToPoint, priority.Scheduled, fixedVar.Fixed, 6 + this.outputInstance.size);
@@ -351,7 +387,7 @@ class Controller extends ENIP {
         ]);
 
         // Message Router to Embed in UCMM
-        const MR = CIP.MessageRouter.build(FORWARD_CLOSE, cmPath, []);
+        const MR = CIP.MessageRouter.build(FORWARD_CLOSE, cmPath, Buffer.from([]));
 
         const forwardCloseData = CIP.ConnectionManager.build_forwardClose(1000 , 0x3333, 0x1337, this.state.fwd_open_serial);
 
@@ -421,10 +457,12 @@ class Controller extends ENIP {
      * @param {function} [cb=null] - Callback to be Passed to Parent.Write()
      * @memberof ENIP
      */
-    write_cip(data, timeout = 10, cb = null) {
+    write_cip(data: Buffer, connected?: boolean, timeout: number = 10, cb: any = null) {
         const { UnconnectedSend } = CIP;
-        let msg;
-        const connected = super.established_conn;
+        let msg: Buffer;
+        if (!connected) {
+            connected = super.established_conn;
+        }
         if (connected === false) {
             msg = UnconnectedSend.build(data, this.state.controller.path);
         } else {
@@ -450,7 +488,7 @@ class Controller extends ENIP {
         ]);
 
         // Message Router to Embed in UCMM
-        const MR = CIP.MessageRouter.build(GET_ATTRIBUTE_ALL, identityPath, []);
+        const MR = CIP.MessageRouter.build(GET_ATTRIBUTE_ALL, identityPath, Buffer.from([]));
 
         this.write_cip(MR);
 

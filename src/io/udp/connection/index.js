@@ -1,13 +1,13 @@
-const TCPController = require("../../tcp");
-const sna = require("./sna").SerialNumber;
+import TCPController from "../../tcp";
+import SerialNumber from "./sna";
 const EventEmitter = require("events");
-const InputMap = require("./inputmap");
-const OuputMap = require("./outputmap");
+import InputMap from "./inputmap";
+import OuputMap from "./outputmap";
 
 class Connection extends EventEmitter {
     constructor(port=2222, address, config, rpi=10) {
         super();
-        this.tcpController = new TCPController(true);
+        this.tcpController = new TCPController(true, config.configInstance, config.outputInstance, config.inputInstance);
         this.connected = false;
         this.config = config;
         this.lastDataTime = 0;
@@ -71,7 +71,7 @@ class Connection extends EventEmitter {
         if (data.readUInt32LE(6) === this.TOid) {
             this.lastDataTime = Date.now();
             const seqAddr = data.readUInt32LE(10);
-            if ( sna(seqAddr,32).gt(sna(this.TOsequenceNum, 32)) ) {
+            if ( new SerialNumber(seqAddr,32).gt(new SerialNumber(this.TOsequenceNum, 32)) ) {
                 this.TOsequenceNum = seqAddr;
 
                 this.cipCount++;
@@ -86,10 +86,10 @@ class Connection extends EventEmitter {
         this.OTsequenceNum = 0;
         this.TOsequenceNum = 0;
         this.cipCount = 0;
-        this.tcpController = new TCPController(true);
+        this.tcpController = new TCPController(true, this.config.configInstance, this.config.outputInstance, this.config.inputInstance);
         this.tcpController.rpi = this.rpi;
         this.tcpController.timeout_sp = 2000;
-        this.tcpController.connect(this.address, 0, this.config.configInstance, this.config.outputInstance, this.config.inputInstance)
+        this.tcpController.connect(this.address, 0)
             .then ( () => {
                 this.OTid = this.tcpController.OTconnectionID;
                 this.TOid = this.tcpController.TOconnectionID;
