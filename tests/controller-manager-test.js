@@ -1,4 +1,4 @@
-const {ControllerManager} = require('../src/index.js')
+const {ControllerManager} = require('../dist/index.js')
 
 let cm = new ControllerManager()
 
@@ -9,6 +9,9 @@ c.on('TagChanged', (tag, prevValue) => {
     console.log(tag.name, ' changed from ', prevValue, ' => ', tag.value)
 })
 
+c.on('TagChanged', (tag) => {
+ 
+})
 let tagTests = [
     {
         name: 'TestUDT2[0]',
@@ -23,34 +26,21 @@ let tagTests = [
     {
         name: 'TestUDT2[0].UDT1[0].STRING1',
         program: 'MainProgram',
-        newValue: 'Test Completed'
-
     },
 
 ]
 
-c.on('Connected', (thisCont) => {
-    console.log('Connected',thisCont.ipAddress)
-    tagTests.forEach(tagTest => {
-        let tag = c.addTag(tagTest.name, tagTest.program, tagTest.arrayDims, tagTest.arraySize)
-        tag.on('Initialized', (tg) => {
-            console.log('Tag Init => ', tg.name, tg.value)
-            if(tagTest.newValue) {           
-                setTimeout(() => {
-                    console.log('Tag Write => ', tg.name, tagTest.newValue)
-                    tag.value = tagTest.newValue
-                }, 1000)
-            }    
-        })
-    })
+tagTests.forEach(tagTest => {
+    let tag = c.addTag(tagTest.name, tagTest.program, tagTest.arrayDims, tagTest.arraySize)
 })
 
-setInterval(() => {
-    if (c.connected) {
-        console.log(cm.getAllValues())
-    }
-}, 5000)
+c.on('Connected', (thisCont) => {
+    console.log('Connected',thisCont.ipAddress)
+})
 
 c.on('Disconnected', () => {
     console.log('Disconnected')
 })
+
+
+

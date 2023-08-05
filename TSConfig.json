@@ -1,10 +1,13 @@
 {
-    "include": ["src/**/*"],
-    "compilerOptions": {
-      "allowJs": true,
-      "declaration": true,
-      "emitDeclarationOnly": true,
-      "outDir": "dist",
-      "declarationMap": true
-    }
-  }
+  "compilerOptions": {
+    "module": "commonjs",
+    "esModuleInterop": true,
+    "target": "ES2021",
+    "moduleResolution": "node",
+    "outDir": "dist",
+    "allowJs": true,
+    "declaration": true
+  },
+  "include": ["src/**/*"],
+  "ignore":["node_modules"]
+}

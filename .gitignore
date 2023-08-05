@@ -16,3 +16,6 @@
 
 # Test Scripts
 test*.js
+
+# Distribution
+/dist
