@@ -1481,10 +1481,18 @@ class Controller extends ENIP {
         let i = 1;
         do {
             tag.state.read_size = i;
-            await this.readTag(tag); 
-            i++;
+            try {
+                await this.readTag(tag);
+                i++; 
+            }
+            catch {
+            } 
+            
         }
-        while (tag.state.read_size !== (i-1));
+        while (tag.state.read_size === (i-1));
+        
+        tag.state.tag.value = null;
+        tag.state.tag.controllerValue = null;
         return tag.state.read_size;
     }
 
