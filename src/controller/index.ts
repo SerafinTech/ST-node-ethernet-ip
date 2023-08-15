@@ -30,7 +30,8 @@ type controllerState = {
     minorUnrecoverableFault: boolean,
     majorRecoverableFault: boolean,
     majorUnrecoverableFault: boolean,
-    io_faulted: boolean
+    io_faulted: boolean,
+    isMicro800: boolean
 }
 
 class Controller extends ENIP {
@@ -83,14 +84,15 @@ class Controller extends ENIP {
                 minorUnrecoverableFault: false,
                 majorRecoverableFault: false,
                 majorUnrecoverableFault: false,
-                io_faulted: false
+                io_faulted: false,
+                isMicro800: opts.isMicro800 || false
             },
             subs: new TagGroup(),
             scanning: false,
             scan_rate: 200, //ms,
             connectedMessaging,
             timeout_sp: 10000, //ms
-            rpi: 10,
+            rpi: 10000,
             fwd_open_serial: 0,
             unconnectedSendTimeout: opts.unconnectedSendTimeout || 2000,
             tagList: new TagList(),
@@ -243,7 +245,9 @@ class Controller extends ENIP {
 
         if (SETUP) { 
             await this.readControllerProps();
-            await this.getControllerTagList(this.state.tagList);
+            if (!this.state.controller.isMicro800) {
+                await this.getControllerTagList(this.state.tagList)
+            }
         }
     }
 
@@ -417,10 +421,15 @@ class Controller extends ENIP {
         ]);
 
         // Concatenate path to CPU and how to reach the message router
-        const portPath = Buffer.concat([ 
-            this.state.controller.path,
-            mrPath
-        ]);
+        const portPath = !this.state.controller.isMicro800 ?
+            Buffer.concat([
+                this.state.controller.path,
+                mrPath
+            ])
+            :
+            Buffer.concat([ 
+                mrPath
+            ]);
             
         // This is the Connection Path data unit (Vol.1 Table 3-5.21)
         const connectionPath = Buffer.concat([
