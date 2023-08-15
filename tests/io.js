@@ -1,3 +1,4 @@
+/* eslint-disable */
 const { IO } = require("../dist/index.js")
 let scanner = new IO.Scanner();
 

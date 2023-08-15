@@ -1,3 +1,4 @@
+/* eslint-disable */
 let Browser = require('../dist/index').Browser
 
 let b = new Browser()

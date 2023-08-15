@@ -1,3 +1,4 @@
+/* eslint-disable */
 const {ControllerManager} = require('../dist/index.js')
 
 let cm = new ControllerManager()
