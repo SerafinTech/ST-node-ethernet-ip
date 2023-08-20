@@ -103,8 +103,8 @@ export class extController extends EventEmitter{
     /**
      * Connect To Controller
      */
-    connect() {
-        this.reconnect = true;
+    connect(reconnect = true) {
+        this.reconnect = reconnect;
         this.PLC = new Controller(this.conncom);
         this.PLC.rpi = this.rpi;
         this.PLC.connect(this.ipAddress, this.slot).then(async () => {
