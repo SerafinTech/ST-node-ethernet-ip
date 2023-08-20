@@ -8,6 +8,7 @@ import { Structure } from "./structure";
 import Browser from "./browser";
 import IO from "./io";
 import ControllerManager from "./controller-manager";
+import { extController } from "./controller-manager";
 
-export { Controller, Tag, TagGroup, EthernetIP, util, TagList, Structure, Browser, IO, ControllerManager};
+export { Controller, Tag, TagGroup, EthernetIP, util, TagList, Structure, Browser, IO, ControllerManager, extController};
 

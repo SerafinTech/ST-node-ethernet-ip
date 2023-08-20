@@ -1,8 +1,7 @@
-const {ControllerManager} = require('../dist/index.js')
+const {extController} = require('../dist/index.js')
 
-let cm = new ControllerManager()
 
-let c = cm.addController('192.168.121.10')
+let c = new extController('192.168.121.10')
 
 c.connect()
 c.on('TagChanged', (tag, prevValue) => {
