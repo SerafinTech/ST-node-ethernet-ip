@@ -129,42 +129,48 @@ export class Browser extends EventEmitter{
         const messageData = EthernetIP.encapsulation.header.parse(msg);
         
         // Check if messageData is not undefined
-        if(messageData !== undefined) {            
-            const cpf = EthernetIP.encapsulation.CPF.parse(messageData.data);
-            // Check if cpf is not undefined
-            if(cpf !== undefined) {
-                // Check if cpf is an array
-                if(Array.isArray(cpf)) {
-                    // Check if cpf[0] is not undefined
-                    if(cpf[0] !== undefined) {
-                        const data = cpf[0].data;                
-                        let ptr = 0;
-
-                        response.EncapsulationVersion = data.readUInt16LE(ptr);
-                        ptr += 2;
-                        response.socketAddress.sin_family = data.readUInt16BE(ptr);
-                        ptr += 2;
-                        response.socketAddress.sin_port = data.readUInt16BE(ptr);
-                        ptr += 2;
-                        response.socketAddress.sin_addr = data.readUInt8(ptr).toString() + "." + data.readUInt8(ptr + 1).toString() + "." + data.readUInt8(ptr + 2).toString() + "." + data.readUInt8(ptr + 3).toString();
-                        ptr += 4;
-                        response.socketAddress.sin_zero = data.slice(ptr,ptr + 8);
-                        ptr += 8;
-                        response.vendorID = data.readUInt16LE(ptr);
-                        ptr += 2;
-                        response.deviceType = data.readUInt16LE(ptr);
-                        ptr += 2;
-                        response.productCode = data.readUInt16LE(ptr);
-                        ptr += 2;
-                        response.revision = data.readUInt8(ptr).toString() + "." + data.readUInt8(ptr + 1).toString();
-                        ptr += 2;
-                        response.status = data.readUInt16LE(ptr);
-                        ptr += 2;
-                        response.serialNumber = "0x" + data.readUInt32LE(ptr).toString(16);
-                        ptr += 4;
-                        response.productName = data.slice(ptr + 1, ptr + 1 + data.readUInt8(ptr)).toString();
-                        ptr += (1 + data.readUInt8(ptr));
-                        response.state = data.readUInt8(ptr);
+        if (messageData !== undefined) {
+            // Check if messageData.data is not undefined
+            if (messageData.data !== undefined) {
+                // Check if messageData.data has a congruent length
+                if (messageData.data.length >= 2) {            
+                    const cpf = EthernetIP.encapsulation.CPF.parse(messageData.data);
+                    // Check if cpf is not undefined
+                    if (cpf !== undefined) {
+                        // Check if cpf is an array
+                        if (Array.isArray(cpf)) {
+                            // Check if cpf[0] is not undefined
+                            if (cpf[0] !== undefined) {
+                                const data = cpf[0].data;
+                                let ptr = 0;
+                                
+                                response.EncapsulationVersion = data.readUInt16LE(ptr);
+                                ptr += 2;
+                                response.socketAddress.sin_family = data.readUInt16BE(ptr);
+                                ptr += 2;
+                                response.socketAddress.sin_port = data.readUInt16BE(ptr);
+                                ptr += 2;
+                                response.socketAddress.sin_addr = data.readUInt8(ptr).toString() + "." + data.readUInt8(ptr + 1).toString() + "." + data.readUInt8(ptr + 2).toString() + "." + data.readUInt8(ptr + 3).toString();
+                                ptr += 4;
+                                response.socketAddress.sin_zero = data.slice(ptr, ptr + 8);
+                                ptr += 8;
+                                response.vendorID = data.readUInt16LE(ptr);
+                                ptr += 2;
+                                response.deviceType = data.readUInt16LE(ptr);
+                                ptr += 2;
+                                response.productCode = data.readUInt16LE(ptr);
+                                ptr += 2;
+                                response.revision = data.readUInt8(ptr).toString() + "." + data.readUInt8(ptr + 1).toString();
+                                ptr += 2;
+                                response.status = data.readUInt16LE(ptr);
+                                ptr += 2;
+                                response.serialNumber = "0x" + data.readUInt32LE(ptr).toString(16);
+                                ptr += 4;
+                                response.productName = data.slice(ptr + 1, ptr + 1 + data.readUInt8(ptr)).toString();
+                                ptr += (1 + data.readUInt8(ptr));
+                                response.state = data.readUInt8(ptr);
+                            }
+                        }
                     }
                 }
             }
