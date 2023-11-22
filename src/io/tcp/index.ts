@@ -366,9 +366,16 @@ class Controller extends ENIP {
         const pointOT = LOGICAL.build(LOGICAL.types.ConnPoint, this.outputInstance.assembly);
         // Input Instance
         const pointTO = LOGICAL.build(LOGICAL.types.ConnPoint, this.inputInstance.assembly);
+        // Config Data
+        let cipPath;
+        if (this.configInstance.size > 0 && Buffer.isBuffer(this.configInstance.data) && this.configInstance.size === this.configInstance.data.length) {
+            const DATA = CIP.EPATH.segments.DATA;
+            cipPath = Buffer.concat([assemblyObjectClass, configInstance, pointOT, pointTO, DATA.build(this.configInstance.data, false)]);
+        } else {
+            cipPath = Buffer.concat([assemblyObjectClass, configInstance, pointOT, pointTO]);
 
-        const cipPath = Buffer.concat([assemblyObjectClass, configInstance, pointOT, pointTO]);
-
+        }
+        
         return(Buffer.concat([electronicKey, cipPath]));
     }
 

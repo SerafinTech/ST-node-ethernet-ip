@@ -16,6 +16,6 @@ let config = {
     }
 };
 
-let conn = scanner.addConnection(config, 50, '192.168.121.11')
+let conn = scanner.addConnection(config, 50, '192.168.1.250')
 
 setInterval(() => { console.log(conn.connected)}, 1000)
