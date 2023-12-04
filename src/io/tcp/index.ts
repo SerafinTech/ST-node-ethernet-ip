@@ -220,7 +220,7 @@ class Controller extends ENIP {
      * @param SLOT - Controller Slot Number (0 if CompactLogix), or a Buffer representing the whole routing path
      * @returns Promise that resolves after connection
      */
-    async connect(IP_ADDR: string, SLOT: number | Buffer = 0, SETUP: boolean = true): Promise<number> {
+    async connect(IP_ADDR: string, SLOT: number | Buffer = 0, localAddress: string): Promise<number> {
                
         const { PORT } = CIP.EPATH.segments;
         const BACKPLANE = 1;
@@ -234,7 +234,7 @@ class Controller extends ENIP {
             throw new Error("Invalid slot parameter type, must be either a number or a Buffer");
         }
 
-        await super.connect(IP_ADDR, this.timeout_sp);   
+        await super.connect(IP_ADDR, this.timeout_sp, localAddress);   
         
         this._initializeControllerEventHandlers(); // Connect sendRRData Event
         

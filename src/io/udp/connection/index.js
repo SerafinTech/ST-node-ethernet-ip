@@ -5,7 +5,7 @@ import InputMap from "./inputmap";
 import OuputMap from "./outputmap";
 
 class Connection extends EventEmitter {
-    constructor(port=2222, address, config, rpi=10) {
+    constructor(port=2222, address, config, rpi=10, localAddress) {
         super();
         this.tcpController = new TCPController(true, config.configInstance, config.outputInstance, config.inputInstance);
         this.connected = false;
@@ -32,6 +32,7 @@ class Connection extends EventEmitter {
         this.inputMap = new InputMap();
         this.outputMap = new OuputMap();
         this.run = true;
+        this.localAddress = localAddress;
 
         setInterval(this._checkStatus.bind(this), 1000);
     }
@@ -89,7 +90,7 @@ class Connection extends EventEmitter {
         this.tcpController = new TCPController(true, this.config.configInstance, this.config.outputInstance, this.config.inputInstance);
         this.tcpController.rpi = this.rpi;
         this.tcpController.timeout_sp = 2000;
-        this.tcpController.connect(this.address, 0)
+        this.tcpController.connect(this.address, 0, this.localAddress)
             .then ( () => {
                 this.OTid = this.tcpController.OTconnectionID;
                 this.TOid = this.tcpController.TOconnectionID;

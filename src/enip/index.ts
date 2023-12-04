@@ -166,7 +166,7 @@ class ENIP extends Socket {
      * @param IP_ADDR - IPv4 Address (can also accept a FQDN, provided port forwarding is configured correctly.)
      * @returns Session Id
      */
-    async connect(IP_ADDR: string, timeoutSP: number = 10000): Promise<number> {
+    async connect(IP_ADDR: string, timeoutSP: number = 10000, localAddress: string = '0.0.0.0'): Promise<number> {
         if (!IP_ADDR) {
             throw new Error("Controller <class> requires IP_ADDR <string>!!!");
         }
@@ -193,9 +193,13 @@ class ENIP extends Socket {
         // Connect to Controller and Then Send Register Session Packet
         await promiseTimeout(
             new Promise<void>((resolve, reject)=> {
+                let options = {
+                    port: EIP_PORT,
+                    host: IP_ADDR,
+                    localAddress: localAddress
+                };
                 let socket = super.connect(
-                    EIP_PORT,
-                    IP_ADDR,
+                    options,
                     () => {
                         this.state.TCP.establishing = false;
                         this.state.TCP.established = true;
