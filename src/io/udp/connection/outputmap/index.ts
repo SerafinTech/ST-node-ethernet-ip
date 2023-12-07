@@ -1,4 +1,4 @@
-type ouputMapItem = {
+type outputMapItem = {
     size: number,
     byte: number,
     offset: number,
@@ -7,7 +7,7 @@ type ouputMapItem = {
 }
 
 class OutputMap {
-    mapping: ouputMapItem[];
+    mapping: outputMapItem[];
     /**
      * Helper to encode input buffer from process value  
      */

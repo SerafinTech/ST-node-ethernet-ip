@@ -2,7 +2,7 @@ import TCPController from "../../tcp";
 import SerialNumber from "./sna";
 const EventEmitter = require("events");
 import InputMap from "./inputmap";
-import OuputMap from "./outputmap";
+import OutputMap from "./outputmap";
 
 class Connection extends EventEmitter {
     constructor(port=2222, address, config, rpi=10, localAddress) {
@@ -30,7 +30,7 @@ class Connection extends EventEmitter {
         this._connectTCP();
 
         this.inputMap = new InputMap();
-        this.outputMap = new OuputMap();
+        this.outputMap = new OutputMap();
         this.run = true;
         this.localAddress = localAddress;
 
@@ -90,7 +90,7 @@ class Connection extends EventEmitter {
         this.tcpController = new TCPController(true, this.config.configInstance, this.config.outputInstance, this.config.inputInstance);
         this.tcpController.rpi = this.rpi;
         this.tcpController.timeout_sp = 2000;
-        this.tcpController.connect(this.address, 0, this.localAddress)
+        this.tcpController.connect(this.address, 0, this.lo)
             .then ( () => {
                 this.OTid = this.tcpController.OTconnectionID;
                 this.TOid = this.tcpController.TOconnectionID;

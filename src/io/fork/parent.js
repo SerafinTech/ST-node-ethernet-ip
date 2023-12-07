@@ -5,43 +5,69 @@ const program = path.resolve(__dirname,'./child.js');
 
 const parameters = [];
 const options = {
-    stdio: ['pipe', 'pipe', 'pipe', 'ipc']
+    stdio: ['pipe', 'pipe', 'pipe', 'ipc'],
 };
 
-const child = fork(program, parameters, options)
-
 class forkConnection {
-    constructor(config, rpi, address, child) {
+    constructor(port, address, config, rpi, localAddress, child) {
         this.inputData = Buffer.alloc(config.inputInstance.size);
         this.outputData = Buffer.alloc(config.outputInstance.size);
         this.lastOutputData = Buffer.alloc(config.outputInstance.size);
         this.address = address;
         this.rpi = rpi;
         this.connected = false;
-        this.lastRun = true;
-        this.run = true;
+        this.runCommand = true;
         this.child = child;
-        this.scan = setInterval(this._checkChanges, rpi);
+        
+        this.child.send({
+            type: 'newConnection',
+            data: {
+                config: config,
+                rpi: rpi,
+                address: address,
+                localAddress: localAddress,
+                port: port
+            },
+            address: this.address
+        })
+        let that = this;
+        this.scan = setInterval(() => {
+            this._checkChanges(that)
+        }, rpi);
 
     }
 
-    _checkChanges() {
-        if (Buffer.compare(this.outputData, this.lastOutputData) !== 0) {
-            this.outputData.copy(this.lastOutputData);
-            this.child.send({
-                type: 'outputData',
-                address: this.address,
-                data: this.outputData
-            })
-        }
+    set run(val) {
+        this.runCommand = val;
+        this.child.send({
+            type: 'run',
+            data: val,
+            address: this.address
+        });
+    }
 
-        if(this.lastRun !== this.run) {
-            this.child.send({
-                type: 'run',
-                data: this.run,
-                address: this.address
+    get run() {
+        return this.runCommand
+    }
+
+    _checkChanges(that) {
+        if (Buffer.compare(that.outputData, that.lastOutputData) !== 0) {
+            that.outputData.copy(that.lastOutputData);
+            that.child.send({
+                type: 'outputData',
+                address: that.address,
+                data: that.outputData
             })
         }
+    }
+
+    close() {
+        this.runCommand = false;
+        clearInterval(this.scan)
+        this.child.send({
+            type: 'closeConn',
+            address: this.address
+        })
     }
     
 }
@@ -52,16 +78,18 @@ class forkScanner {
         parameters.push(localAddress);
         this.child = fork(program, parameters, options);
         this.connections = {};
-        this.child.on('message', this._onMessage);
+        this.child.on('message', mess => {
+            this._onMessage(mess, this);
+        });
     }
 
     addConnection(config, rpi, address, port=2222) {
-        let conn = new forkConnection(port, address, config, rpi, this.localAddress);
+        let conn = new forkConnection(port, address, config, rpi, this.localAddress, this.child);
         this.connections[conn.address] = conn
         return this.connections[conn.address];
     }
 
-    _onMessage(message) {
+    _onMessage(message, that) {
         if (message.type === 'inputData') {
             this.connections[message.address].inputData = Buffer.from(message.data)
         }
@@ -71,10 +99,11 @@ class forkScanner {
         }
     }
 
-    close() {
+    close(cb) {
         this.child.send({
-            type: 'close'
-       }) 
+            type: 'closeScanner'
+        });
+        cb(); 
     }
 }
 
