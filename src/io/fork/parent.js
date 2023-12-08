@@ -3,9 +3,8 @@ import path from 'path';
 
 const program = path.resolve(__dirname,'./child.js');
 
-const parameters = [];
 const options = {
-    stdio: ['pipe', 'pipe', 'pipe', 'ipc'],
+    stdio: [0, 1, 2, 'ipc'],
 };
 
 class forkConnection {
@@ -74,9 +73,9 @@ class forkConnection {
 
 class forkScanner {
     constructor(port=2222, localAddress='0.0.0.0' ) {
-        parameters.push(port.toString());
-        parameters.push(localAddress);
-        this.child = fork(program, parameters, options);
+        this.port = port;
+        this.localAddress = localAddress;
+        this.child = fork(program, [this.port, this.localAddress], options);
         this.connections = {};
         this.child.on('message', mess => {
             this._onMessage(mess, this);

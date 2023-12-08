@@ -4,7 +4,7 @@ const Connection = require("./connection");
 class Controller {
     constructor(port=2222, localAddress) {
         this.socket = dgram.createSocket("udp4");
-        this.socket.bind(port, localAddress);
+        this.socket.bind({port: port, address: localAddress});
         this.localAddress = localAddress
     
         this.connections = [];
@@ -12,6 +12,7 @@ class Controller {
     }
 
     addConnection(config, rpi, address, port=2222) {
+        console.log(port, address, config, rpi, this.localAddress)
         let conn = new Connection(port, address, config, rpi, this.localAddress);
         return this.connections[this.connections.push(conn) - 1];
     }

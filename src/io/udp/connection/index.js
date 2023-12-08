@@ -7,7 +7,7 @@ import OutputMap from "./outputmap";
 class Connection extends EventEmitter {
     constructor(port=2222, address, config, rpi=10, localAddress) {
         super();
-        this.tcpController = new TCPController(true, config.configInstance, config.outputInstance, config.inputInstance);
+        //this.tcpController = new TCPController(true, config.configInstance, config.outputInstance, config.inputInstance);
         this.connected = false;
         this.config = config;
         this.lastDataTime = 0;
@@ -26,15 +26,15 @@ class Connection extends EventEmitter {
  
         this.outputData = Buffer.alloc(this.OTsize);
         this.inputData = Buffer.alloc(this.TOsize);
-    
-        this._connectTCP();
+        let that = this;
+        this.localAddress = localAddress;
+        this.run = true;
+        this._connectTCP(that);
 
         this.inputMap = new InputMap();
         this.outputMap = new OutputMap();
-        this.run = true;
-        this.localAddress = localAddress;
-
-        setInterval(this._checkStatus.bind(this), 1000);
+        
+        setInterval(() => that._checkStatus(that), 1000);
     }
 
     generateDataMessage() {
@@ -83,39 +83,39 @@ class Connection extends EventEmitter {
         } 
     }
 
-    _connectTCP() {
-        this.OTsequenceNum = 0;
-        this.TOsequenceNum = 0;
-        this.cipCount = 0;
-        this.tcpController = new TCPController(true, this.config.configInstance, this.config.outputInstance, this.config.inputInstance);
-        this.tcpController.rpi = this.rpi;
-        this.tcpController.timeout_sp = 2000;
-        this.tcpController.connect(this.address, 0, this.lo)
+    _connectTCP(that) {
+        that.OTsequenceNum = 0;
+        that.TOsequenceNum = 0;
+        that.cipCount = 0;
+        that.tcpController = new TCPController(true, that.config.configInstance, that.config.outputInstance, that.config.inputInstance);
+        that.tcpController.rpi = that.rpi;
+        that.tcpController.timeout_sp = 2000;
+        that.tcpController.connect(that.address, 0, that.localAddress)
             .then ( () => {
-                this.OTid = this.tcpController.OTconnectionID;
-                this.TOid = this.tcpController.TOconnectionID;
+                that.OTid = that.tcpController.OTconnectionID;
+                that.TOid = that.tcpController.TOconnectionID;
             })
             .catch(() => {
-                this.lastDataTime = 0;
-                this.connected = false;
-                setTimeout(() => this._connectTCP(), this.rpi * 20);
+                that.lastDataTime = 0;
+                that.connected = false;
+                setTimeout(() => that._connectTCP(that), that.rpi * 20);
             });
     }
 
-    _checkStatus() {
-        if (Date.now() - this.lastDataTime > this.tcpController.rpi * 4) {
-            if (this.connected) {
-                this.emit("disconnected", null);
-                this.TOid = 0;
+    _checkStatus(that) {
+        if (Date.now() - that.lastDataTime > that.tcpController.rpi * 4) {
+            if (that.connected) {
+                that.emit("disconnected", null);
+                that.TOid = 0;
             }
-            if (!this.tcpController.state.TCP.establishing && this.connected && this.run) setTimeout(() => this._connectTCP(), this.rpi * 20);
-            this.connected = false;
+            if (!that.tcpController.state.TCP.establishing && that.connected && that.run) setTimeout(() => that._connectTCP(that), that.rpi * 20);
+            that.connected = false;
       
         } else {
-            if(!this.connected) {
-                this.emit("connected", null);
+            if(!that.connected) {
+                that.emit("connected", null);
             }
-            this.connected = true;
+            that.connected = true;
         }
     }
 
