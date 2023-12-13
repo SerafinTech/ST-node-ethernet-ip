@@ -18,17 +18,20 @@ class forkConnection {
         this.runCommand = true;
         this.child = child;
         
-        this.child.send({
-            type: 'newConnection',
-            data: {
-                config: config,
-                rpi: rpi,
-                address: address,
-                localAddress: localAddress,
-                port: port
-            },
-            address: this.address
-        })
+        if (this.child.connected) {
+            this.child.send({
+                type: 'newConnection',
+                data: {
+                    config: config,
+                    rpi: rpi,
+                    address: address,
+                    localAddress: localAddress,
+                    port: port
+                },
+                address: this.address
+            })
+        }     
+        
         let that = this;
         this.scan = setInterval(() => {
             this._checkChanges(that)
@@ -38,11 +41,15 @@ class forkConnection {
 
     set run(val) {
         this.runCommand = val;
-        this.child.send({
-            type: 'run',
-            data: val,
-            address: this.address
-        });
+        if (this.child.connected) {
+            this.child.send({
+                type: 'run',
+                data: val,
+                address: this.address
+            });
+        } else {
+            this.connected = false;
+        }   
     }
 
     get run() {
@@ -52,21 +59,32 @@ class forkConnection {
     _checkChanges(that) {
         if (Buffer.compare(that.outputData, that.lastOutputData) !== 0) {
             that.outputData.copy(that.lastOutputData);
-            that.child.send({
-                type: 'outputData',
-                address: that.address,
-                data: that.outputData
-            })
+
+            if (that.child.connected) {
+                that.child.send({
+                    type: 'outputData',
+                    address: that.address,
+                    data: that.outputData
+                })
+            } else {
+                that.connected = false;
+            }        
         }
     }
 
     close() {
         this.runCommand = false;
         clearInterval(this.scan)
-        this.child.send({
-            type: 'closeConn',
-            address: this.address
-        })
+
+        if (this.child.connected) {
+            this.child.send({
+                type: 'closeConn',
+                address: this.address
+            })
+        } else {
+            this.connected = false;
+        }
+        
     }
     
 }
@@ -99,9 +117,11 @@ class forkScanner {
     }
 
     close(cb) {
-        this.child.send({
-            type: 'closeScanner'
-        });
+        if (this.child.connected) {
+            this.child.send({
+                type: 'closeScanner'
+            });
+        } 
         cb(); 
     }
 }

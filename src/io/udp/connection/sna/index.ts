@@ -129,7 +129,6 @@ export default class SerialNumber {
         if (options.string) {
             return number;
         } else {
-            console.log(number);
             return parseInt(number, options.radix);
         }
     };

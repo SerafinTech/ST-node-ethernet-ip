@@ -12,7 +12,6 @@ class Controller {
     }
 
     addConnection(config, rpi, address, port=2222) {
-        console.log(port, address, config, rpi, this.localAddress)
         let conn = new Connection(port, address, config, rpi, this.localAddress);
         return this.connections[this.connections.push(conn) - 1];
     }
