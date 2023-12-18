@@ -31,6 +31,18 @@ const Types = {
     STRUCT: 0x02a0
 };
 
+const TypeSizes = {
+    0xc1: 1,
+    0xc2: 1,
+    0xc3: 2,
+    0xc4: 4,
+    0xc5: 8,
+    0xc6: 1,
+    0xc7: 2,
+    0xc8: 4,
+    0xca: 4,
+}
+
 /**
  * Checks if an Inputted Integer is a Valid Type Code (Vol1 Appendix C)
  *
@@ -59,4 +71,4 @@ const getTypeCodeString = (num: number): string => {
     return null;
 };
 
-export { Types, isValidTypeCode, getTypeCodeString };
+export { Types, isValidTypeCode, getTypeCodeString, TypeSizes };

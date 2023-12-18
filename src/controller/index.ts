@@ -989,7 +989,11 @@ class Controller extends ENIP {
      * @returns Promise resolved when complete
      */
     async _writeTag(tag: Tag | Structure, value: any = null, size: number = 0x01): Promise<void> {
-        if (tag.state.tag.value.length > (480 - tag.path.length) && (tag instanceof Structure))
+        let dataSize = 1
+        if (tag.state.tag.type >= 0xc1 && tag.state.tag.type <= 0xca) { 
+            dataSize = CIP.DataTypes.TypeSizes[tag.state.tag.type]
+        }
+        if (tag.state.tag.value.length * dataSize > (480 - tag.path.length))
             return this._writeTagFragmented(tag, value, size);
 
         const MR = tag.generateWriteMessageRequest(value, size);
@@ -1035,16 +1039,20 @@ class Controller extends ENIP {
      * @param size - Number of tags to read used for arrays
      * @returns Promise resolved when complete
      */
-    async _writeTagFragmented(tag: Structure, value: any = null, size: number = 0x01): Promise<void> {
-        if(value) tag.value = value;
+    async _writeTagFragmented(tag: Structure | Tag, value: any = null, size: number = 0x01): Promise<void> {
+        if(value !== null) tag.value = value;
         let offset = 0;
         const maxPacket = 480 - tag.path.length;
-        let valueFragment = tag.state.tag.value.slice(offset, maxPacket);
+        let dataSize = 1
+        if (tag.state.tag.type >= 0xc1 && tag.state.tag.type <= 0xca) { 
+            dataSize = CIP.DataTypes.TypeSizes[tag.state.tag.type]
+        }
+        let valueFragment = tag.state.tag.value.slice(0, Math.floor(maxPacket / dataSize));
         let MR = tag.generateWriteMessageRequestFrag(offset, valueFragment, size);
-
         this.write_cip(MR);
         let numWrites = 0;
-        let totalWrites = Math.ceil(tag.state.tag.value.length / maxPacket);
+       
+        let totalWrites = Math.ceil(tag.state.tag.value.length * dataSize / maxPacket);
         const writeTagErr = new Error(`TIMEOUT occurred while writing Writing Tag: ${tag.name}.`);
 
         // Wait for Response
@@ -1054,10 +1062,10 @@ class Controller extends ENIP {
                 // Full Tag Writing
                 this.on("Write Tag Fragmented", (err, data) => {
                     if (err) return reject(err);
-                    offset += maxPacket;
+                    offset += Math.floor(maxPacket / dataSize) * dataSize;
                     numWrites ++;
                     if (numWrites < totalWrites) {
-                        valueFragment = tag.state.tag.value.slice(offset, maxPacket + offset);
+                        valueFragment = tag.state.tag.value.slice(Math.floor(offset / dataSize), Math.floor(maxPacket / dataSize) + Math.floor(offset / dataSize));
                         MR = tag.generateWriteMessageRequestFrag(offset, valueFragment, size);
                         this.write_cip(MR);
                     } else {

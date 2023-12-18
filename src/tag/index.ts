@@ -2,7 +2,7 @@ import { EventEmitter } from 'events';
 import * as crypto from 'crypto';
 import { CIP } from '../enip';
 const { MessageRouter } = CIP;
-const { READ_TAG, WRITE_TAG, READ_MODIFY_WRITE_TAG, READ_TAG_FRAGMENTED } = MessageRouter.services;
+const { READ_TAG, WRITE_TAG, READ_MODIFY_WRITE_TAG, READ_TAG_FRAGMENTED, WRITE_TAG_FRAGMENTED } = MessageRouter.services;
 import { Types, getTypeCodeString, isValidTypeCode } from '../enip/cip/data-types';
 import dateFormat from 'dateformat';
 import equals from 'deep-equal';
@@ -744,6 +744,107 @@ export class Tag extends EventEmitter {
 
         // Build Current Message
         return MessageRouter.build(WRITE_TAG, tag.path, buf);
+    }
+
+    /**
+     * Generates Write Tag Message Frag
+     *
+     * @param offset - Offset of data already written
+     * @param value - If Omitted, Tag.value will be used
+     * @param size
+     * @returns Write Tag Message Service
+     * @memberof Tag
+     */
+    generateWriteMessageRequestFrag(offset: number = 0, value: Buffer = null, size: number = 0x01) {
+        const { tag } = this.state;
+        const { SINT, INT, DINT, REAL, BOOL, LINT } = Types;
+        // Build Message Router to Embed in UCMM
+        let buf = Buffer.alloc(8);
+        let valBuf = null;
+
+        buf.writeUInt16LE(tag.type, 0);
+        buf.writeUInt16LE(this.value.length, 2);
+        buf.writeUInt32LE(offset, 4);
+
+        /* eslint-disable indent */
+        switch (tag.type) {
+            case SINT:
+                if (Array.isArray(value)) {
+                    valBuf = Buffer.alloc(value.length);
+                    for (var i = 0; i < value.length; i++) {
+                        valBuf.writeUInt8(value[i], i);
+                    }
+                } else {
+                    valBuf = Buffer.alloc(1);
+                    valBuf.writeInt8(tag.value);                    
+                }
+                buf = Buffer.concat([buf, valBuf]);
+                break;
+            case INT:
+                if (Array.isArray(value)) {
+                    valBuf = Buffer.alloc(2 * value.length);
+                    for (let i = 0; i < value.length; i++) {
+                        valBuf.writeInt16LE(value[i], i * 2);
+                    }
+                } else {
+                    valBuf = Buffer.alloc(2);
+                    valBuf.writeInt16LE(tag.value);                    
+                }
+                buf = Buffer.concat([buf, valBuf]);
+                break;
+            case DINT:
+                if (Array.isArray(value)) {
+                    valBuf = Buffer.alloc(4 * value.length);
+                    for (let i = 0; i < value.length; i++) {
+                        valBuf.writeUInt32LE(value[i], i * 4);
+                    }
+                } else {
+                    valBuf = Buffer.alloc(4);
+                    valBuf.writeInt32LE(tag.value);                    
+                }
+                buf = Buffer.concat([buf, valBuf]);               
+                break;
+            case REAL:
+                if (Array.isArray(value)) {
+                    valBuf = Buffer.alloc(4 * value.length);
+                    for (let i = 0; i < value.length; i++) {
+                        valBuf.writeFloatLE(value[i], i * 4);
+                    }
+                } else {
+                    valBuf = Buffer.alloc(4);
+                    valBuf.writeFloatLE(tag.value);                    
+                }
+                buf = Buffer.concat([buf, valBuf]);
+                break;
+            case BOOL:
+                valBuf = Buffer.alloc(1);
+                if (!tag.value) valBuf.writeInt8(0x00);
+                else valBuf.writeInt8(0x01);
+
+                buf = Buffer.concat([buf, valBuf]);
+                break;
+            case LINT:
+                valBuf = Buffer.alloc(8);
+                if(typeof valBuf.writeBigInt64LE !== "function") {
+                    throw new Error("This version of Node.js does not support big integers. Upgrade to >= 12.0.0");
+                }
+                if (Array.isArray(value)) {
+                    valBuf = Buffer.alloc(8 * value.length);
+                    for (let i = 0; i < value.length; i++) {
+                        valBuf.writeBigInt64LE(value[i], i * 8);
+                    }
+                } else {
+                    valBuf = Buffer.alloc(8);
+                    valBuf.writeBigInt64LE(tag.value);                    
+                }
+                buf = Buffer.concat([buf, valBuf]);
+                break;
+            default:
+                throw new Error(`Unrecognized Type to Write to Controller: ${tag.type}`);
+        }
+
+        // Build Current Message
+        return MessageRouter.build(WRITE_TAG_FRAGMENTED, tag.path, buf); 
     }
 
     /**
