@@ -141,16 +141,12 @@ export class extController extends EventEmitter{
      * 
      * @param e - Error emitted
      */
-    errorHandle(e: Error) {
-        this.emit("Error", e);
-
-        if(e.message && (e.message.slice(0,7) === "TIMEOUT" || e.message.slice(0,6) === "SOCKET")) {
-
-            this.connected = false;
-            this.PLC.destroy();
-            this.emit("Disconnected");
-            if(this.reconnect) {setTimeout(() => {this.connect();}, this.retryTimeSP);}
-        }
+    errorHandle(e: any) {
+        this.emit("Error", e); 
+        this.connected = false;
+        this.PLC.destroy();
+        this.emit("Disconnected");
+        if(this.reconnect) {setTimeout(() => {this.connect();}, this.retryTimeSP);}
     }
     
     /**

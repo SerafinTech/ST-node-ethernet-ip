@@ -1,6 +1,6 @@
 const {Controller, Tag, EthernetIP, Structure} = require("../dist/index.js")
 
-let c = new Controller(true);
+let c = new Controller();
 
 (async function (){
     await c.connect('192.168.1.10');
@@ -12,7 +12,7 @@ let c = new Controller(true);
     console.log(tag.value)
     await c.writeTag(tag)
     console.log(c.state.tagList)
-    
+
     let tag2 = new Structure('BigStruct', c.state.tagList, 'MainProgram')
 
     await c.readTag(tag2)
