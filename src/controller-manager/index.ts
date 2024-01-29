@@ -71,6 +71,7 @@ export declare interface extController {
     on(event: 'Connected', listener: (this: this) => {}): this; 
     on(event: 'TagChanged', listener: (tag: Tag, previousValue: any) => {}): this;
     on(event: 'TagInit', listener: (tag: Tag) => {}): this;
+    on(event: 'TagUnknown', listener: (tag: Tag) => {}): this;
     on(event: 'Disconnected', listener: () => {}): this;
 }
 
@@ -134,6 +135,9 @@ export class extController extends EventEmitter{
         tag.on("Initialized", () => {
             this.emit("TagInit", tag);
         });
+        tag.on("Unknown", () => {
+            this.emit("TagUnknown", tag);
+        })
     }
 
     /**

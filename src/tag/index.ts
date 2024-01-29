@@ -41,6 +41,7 @@ export declare interface Tag extends EventEmitter {
     on(event: string, listener: Function): this;
     on(event: 'Changed', listener: (this: this, previousValue: any) => {}): this;
     on(event: 'Initialized', listener: (this: this) => {}): this;
+    on(event: 'Unknown', listener: (this: this) => {}): this;
     on(event: 'KeepAlive', listener: (this: this) => {}): this;
 }
 
@@ -373,6 +374,9 @@ export class Tag extends EventEmitter {
     }
     // endregion
 
+    unknownTag(): void {
+        this.emit("Unknown", this);
+    }
     // region Public Methods
     
     /**
