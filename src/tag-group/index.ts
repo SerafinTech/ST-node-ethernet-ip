@@ -163,6 +163,8 @@ class TagGroup {
         for (let i = 0; i < ids.length; i++) {
             if(responses[i].generalStatusCode === 0)
                 this.state.tags[ids[i]].parseReadMessageResponse(responses[i].data);
+            if(responses[i].generalStatusCode === 4)
+                this.state.tags[ids[i]].unknownTag();
         }
     }
 

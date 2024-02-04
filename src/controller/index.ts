@@ -1098,7 +1098,7 @@ class Controller extends ENIP {
             const data = await promiseTimeout(
                 new Promise((resolve, reject) => {
                     this.on("Multiple Service Packet", async (err, data) => {
-                        if (err && err.generalStatusCode !== 6) reject(err);
+                        if (err && err.generalStatusCode !== 6 && err.generalStatusCode !== 4) reject(err);
                         for (let i = 0; i < data.length; i++) {
                             if (data[i].generalStatusCode === 6) {
                                 await this._readTagFragmented(group.state.tags[msg.tag_ids[i]]).catch(reject);
