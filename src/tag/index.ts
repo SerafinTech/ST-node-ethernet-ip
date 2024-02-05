@@ -188,6 +188,17 @@ export class Tag extends EventEmitter {
     }
 
     /**
+     * Gets Program Name
+     *
+     * @returns program
+     */
+    get program():string {
+        const { program } = this.state.tag;
+
+        return program
+    }
+
+    /**
      * Sets Tagname if Valid
      *
      * @param name - New Tag Name
