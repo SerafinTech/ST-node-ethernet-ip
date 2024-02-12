@@ -4,8 +4,8 @@ let c = new Controller(true);
 
 (async function (){
     await c.connect('192.168.1.10');
-    let tag = new Structure('TestString', c.state.tagList, 'MainProgram')
-
+    //let tag = new Structure('TestString', c.state.tagList, 'MainProgram')
+    let tag = c.newTag('TestString', 'MainProgram')
     await c.readTag(tag)
 
     console.log(tag.value)
