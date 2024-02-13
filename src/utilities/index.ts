@@ -42,7 +42,6 @@ const bufferToString = (buff: Buffer): string => {
  */
 const stringToBuffer = (str: string, len: number = 88) => {
     const buf = Buffer.alloc(len);
-    str = str.slice(0, len - 6);
     buf.writeUInt32LE(str.length);
     Buffer.from(str).copy(buf, 4);
     return buf;
