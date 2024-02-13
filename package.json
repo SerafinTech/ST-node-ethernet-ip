@@ -1,6 +1,6 @@
 {
     "name": "st-ethernet-ip",
-    "version": "2.7.0",
+    "version": "2.7.1",
     "description": "A simple node interface for Ethernet/IP.",
     "main": "./dist/index.js",
     "types": "./dist/index.d.ts",
