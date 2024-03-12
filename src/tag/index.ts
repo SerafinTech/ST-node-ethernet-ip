@@ -386,6 +386,7 @@ export class Tag extends EventEmitter {
     // endregion
 
     unknownTag(): void {
+        this.state.timestamp = new Date();
         this.emit("Unknown", this);
     }
     // region Public Methods
