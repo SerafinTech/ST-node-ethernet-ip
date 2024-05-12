@@ -494,7 +494,7 @@ export class Tag extends EventEmitter {
      * @param Data - Returned from Successful Read Tag Request
      */
     parseReadMessageResponseValueForAtomic(data: Buffer) {
-        const { SINT, INT, DINT, REAL, BOOL, LINT, BIT_STRING, UINT, SHORT_STRING } = Types;
+        const { SINT, INT, DINT, REAL, BOOL, LINT, BIT_STRING, UINT, SHORT_STRING, USINT } = Types;
 
         const { read_size } = this.state;
 
@@ -512,6 +512,17 @@ export class Tag extends EventEmitter {
                     this.controller_value = data.readInt8(2);
                 }
                 break;
+            case USINT:
+                    if (data.length > 3) {
+                        const array = [];
+                        for (let i = 0; i < data.length - 2; i++) {
+                            array.push(data.readUInt8(i + 2));
+                        }
+                        this.controller_value = array;
+                    } else {
+                        this.controller_value = data.readUInt8(2);
+                    }
+                    break;
             case UINT:
                 if (data.length > 4) {
                     const array = [];
@@ -684,7 +695,7 @@ export class Tag extends EventEmitter {
      */
     generateWriteMessageRequestForAtomic(value: any, size: number) {
         const { tag } = this.state;
-        const { SINT, INT, DINT, REAL, BOOL, LINT, SHORT_STRING } = Types;
+        const { SINT, INT, DINT, REAL, BOOL, LINT, SHORT_STRING, USINT } = Types;
         // Build Message Router to Embed in UCMM
         let buf = Buffer.alloc(4);
         let valBuf = null;
@@ -703,7 +714,7 @@ export class Tag extends EventEmitter {
                 if (Array.isArray(value)) {
                     valBuf = Buffer.alloc(value.length);
                     for (var i = 0; i < value.length; i++) {
-                        valBuf.writeUInt8(value[i], i);
+                        valBuf.writeInt8(value[i], i);
                     }
                 } else {
                     valBuf = Buffer.alloc(1);
@@ -711,6 +722,18 @@ export class Tag extends EventEmitter {
                 }
                 buf = Buffer.concat([buf, valBuf]);
                 break;
+            case USINT:
+                    if (Array.isArray(value)) {
+                        valBuf = Buffer.alloc(value.length);
+                        for (var i = 0; i < value.length; i++) {
+                            valBuf.writeUInt8(value[i], i);
+                        }
+                    } else {
+                        valBuf = Buffer.alloc(1);
+                        valBuf.writeUInt8(tag.value);                    
+                    }
+                    buf = Buffer.concat([buf, valBuf]);
+                    break;
             case INT:
                 if (Array.isArray(value)) {
                     valBuf = Buffer.alloc(2 * value.length);
