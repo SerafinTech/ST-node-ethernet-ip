@@ -603,7 +603,8 @@ export class Tag extends EventEmitter {
                     }
                 } else {
                     //empty string, data[2] will be 0 as well, as it is the string length
-                    this.controller_value = null;
+                    //return empty string instead of null
+                    this.controller_value = '';//null;
                 }
                 break;
             default:
