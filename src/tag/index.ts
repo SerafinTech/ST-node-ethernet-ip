@@ -625,8 +625,7 @@ export class Tag extends EventEmitter {
      * @memberof Tag
      */
     generateWriteMessageRequest(value: any = null, size: number = 0x01): Buffer {
-        // allow null value for short string
-        if (value !== null || this.state.tag.type === Types.SHORT_STRING) {
+        if (value !== null) {
             this.state.tag.value = value;
         } 
 
