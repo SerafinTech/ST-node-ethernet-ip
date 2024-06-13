@@ -254,9 +254,10 @@ class Controller extends ENIP {
      * @param classID 
      * @param instance 
      * @param attribute 
+     * @param attData buffer with additional data to append to request (optional)
      * @returns attribute buffer
      */
-    async getAttributeSingle(classID: number, instance: number, attribute: number): Promise<Buffer> {
+    async getAttributeSingle(classID: number, instance: number, attribute: number, attData: Buffer = Buffer.alloc(0)): Promise<Buffer> {
         const { GET_ATTRIBUTE_SINGLE } = CIP.MessageRouter.services;
         const { LOGICAL } = CIP.EPATH.segments;
        
@@ -266,25 +267,28 @@ class Controller extends ENIP {
             LOGICAL.build(LOGICAL.types.AttributeID, attribute) 
         ]);
 
-        const MR = CIP.MessageRouter.build(GET_ATTRIBUTE_SINGLE, identityPath, Buffer.from([]));
+        const MR = CIP.MessageRouter.build(GET_ATTRIBUTE_SINGLE, identityPath, attData);
 
         super.write_cip(MR, super.established_conn);
 
         const readPropsErr = new Error("TIMEOUT occurred while reading Param.");
 
         // Wait for Response
-        const data = await promiseTimeout(
-            new Promise((resolve, reject) => {
-                this.on("Get Attribute Single", (err, data) => {
-                    if (err) reject(err);
-                    resolve(data);
-                });
-            }),
-            this.state.timeout_sp,
-            readPropsErr
-        );
-        this.removeAllListeners("Get Attribute Single");
-        return data
+        try {
+            const data = await promiseTimeout(
+                new Promise((resolve, reject) => {
+                    this.on("Get Attribute Single", (err, data) => {
+                        if (err) reject(err);
+                        resolve(data);
+                    });
+                }),
+                this.state.timeout_sp,
+                readPropsErr
+            );
+            return data
+        } finally {
+            this.removeAllListeners("Get Attribute Single");
+        }          
     }
 
     /**
