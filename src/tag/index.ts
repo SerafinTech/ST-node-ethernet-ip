@@ -750,7 +750,7 @@ export class Tag extends EventEmitter {
                 if (Array.isArray(value)) {
                     valBuf = Buffer.alloc(4 * value.length);
                     for (let i = 0; i < value.length; i++) {
-                        valBuf.writeUInt32LE(value[i], i * 4);
+                        valBuf.writeInt32LE(value[i], i * 4);
                     }
                 } else {
                     valBuf = Buffer.alloc(4);
@@ -867,7 +867,7 @@ export class Tag extends EventEmitter {
                 if (Array.isArray(value)) {
                     valBuf = Buffer.alloc(4 * value.length);
                     for (let i = 0; i < value.length; i++) {
-                        valBuf.writeUInt32LE(value[i], i * 4);
+                        valBuf.writeInt32LE(value[i], i * 4);
                     }
                 } else {
                     valBuf = Buffer.alloc(4);
