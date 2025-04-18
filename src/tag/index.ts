@@ -594,7 +594,7 @@ export class Tag extends EventEmitter {
                     this.controller_value = data.readBigInt64LE(2);
                 }
                 break;
-                case SHORT_STRING: // single byte character string
+            case SHORT_STRING: // single byte character string
                 if (data.length > 3) {
                     const len = data.readUInt8(2);
                     this.controller_value = data.toString('utf8', 3); // use latin1 encoding?
@@ -793,22 +793,22 @@ export class Tag extends EventEmitter {
                 }
                 buf = Buffer.concat([buf, valBuf]);
                 break;
-                case SHORT_STRING:
-                    valBuf = Buffer.alloc(1);
-                    if (!tag.value || tag.value.length === 0)
-                        valBuf.writeInt8(0x00);
-                    else {
-                        const strBuf = Buffer.from(tag.value, 'latin1');
-                        const strlen = strBuf.length;
-                        if ( strlen > 255) {
-                            throw new Error(`String too long to Write to Controller: ${tag.type}, limit 255 bytes, length ${strlen}`);
-                        }
-                        valBuf = Buffer.alloc(1 + strlen); // 1+ for length byte
-                        valBuf.writeUInt8(strlen);//write the length
-                        strBuf.copy(valBuf,1,);
+            case SHORT_STRING:
+                valBuf = Buffer.alloc(1);
+                if (!tag.value || tag.value.length === 0)
+                    valBuf.writeInt8(0x00);
+                else {
+                    const strBuf = Buffer.from(tag.value, 'latin1');
+                    const strlen = strBuf.length;
+                    if ( strlen > 255) {
+                        throw new Error(`String too long to Write to Controller: ${tag.type}, limit 255 bytes, length ${strlen}`);
                     }
-                    buf = Buffer.concat([buf, valBuf]);
-                    break;
+                    valBuf = Buffer.alloc(1 + strlen); // 1+ for length byte
+                    valBuf.writeUInt8(strlen);//write the length
+                    strBuf.copy(valBuf,1,);
+                }
+                buf = Buffer.concat([buf, valBuf]);
+                break;
             default:
                 throw new Error(`Unrecognized Type to Write to Controller: ${tag.type}`);
         }
@@ -828,7 +828,7 @@ export class Tag extends EventEmitter {
      */
     generateWriteMessageRequestFrag(offset: number = 0, value: Buffer = null, size: number = 0x01) {
         const { tag } = this.state;
-        const { SINT, INT, DINT, REAL, BOOL, LINT } = Types;
+        const { SINT, INT, DINT, REAL, BOOL, LINT, SHORT_STRING    } = Types;
         // Build Message Router to Embed in UCMM
         let buf = Buffer.alloc(8);
         let valBuf = null;
@@ -843,7 +843,7 @@ export class Tag extends EventEmitter {
                 if (Array.isArray(value)) {
                     valBuf = Buffer.alloc(value.length);
                     for (var i = 0; i < value.length; i++) {
-                        valBuf.writeUInt8(value[i], i);
+                        valBuf.writeInt8(value[i], i);
                     }
                 } else {
                     valBuf = Buffer.alloc(1);
@@ -907,6 +907,22 @@ export class Tag extends EventEmitter {
                 } else {
                     valBuf = Buffer.alloc(8);
                     valBuf.writeBigInt64LE(tag.value);                    
+                }
+                buf = Buffer.concat([buf, valBuf]);
+                break;
+            case SHORT_STRING:
+                valBuf = Buffer.alloc(1);
+                if (!tag.value || tag.value.length === 0)
+                    valBuf.writeInt8(0x00);
+                else {
+                    const strBuf = Buffer.from(tag.value, 'latin1');
+                    const strlen = strBuf.length;
+                    if ( strlen > 255) {
+                        throw new Error(`String too long to Write to Controller: ${tag.type}, limit 255 bytes, length ${strlen}`);
+                    }
+                    valBuf = Buffer.alloc(1 + strlen); // 1+ for length byte
+                    valBuf.writeUInt8(strlen);//write the length
+                    strBuf.copy(valBuf,1,);
                 }
                 buf = Buffer.concat([buf, valBuf]);
                 break;
