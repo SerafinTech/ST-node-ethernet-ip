@@ -337,10 +337,19 @@ export class Structure extends Tag {
                 case LINT:
                     if (member.type.arrayDims > 0) {
                         for (let i = 0; i < member.info; i++) {
-                            data.writeBigInt64LE(structValues[member.name][i], member.offset + (i * 8));
+                            if (typeof structValues[member.name][i] == 'bigint') {
+                                data.writeBigInt64LE(structValues[member.name][i], member.offset + (i * 8));
+                            } else {
+                                data.writeBigInt64LE(BigInt(structValues[member.name][i]), member.offset + (i * 8));
+                            }
+                            
                         }
                     } else {
-                        data.writeBigInt64LE(structValues[member.name],member.offset);
+                        if (typeof structValues[member.name] == 'bigint') {
+                            data.writeBigInt64LE(structValues[member.name], member.offset + 8);
+                        } else {
+                            data.writeBigInt64LE(BigInt(structValues[member.name]), member.offset +  8);
+                        }
                     }
                     break;
                 case BIT_STRING:
